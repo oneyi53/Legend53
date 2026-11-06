@@ -1,7 +1,5 @@
 extends Node
 
-## Combat coordinator: owns the manual/auto mode and routes player attacks.
-
 signal mode_changed(is_auto: bool)
 signal target_changed(target: Node2D)
 
@@ -13,15 +11,21 @@ var auto_combat_enabled: bool = false
 var current_target: Node2D
 var _attack_timer: float = 0.0
 
+func _ready() -> void:
+    add_to_group("combat_director")
+
 func _process(delta: float) -> void:
     _attack_timer = maxf(0.0, _attack_timer - delta)
+    if Input.is_action_just_pressed("toggle_auto"):
+        toggle_auto_combat()
+    if Input.is_action_just_pressed("attack"):
+        manual_attack()
+
     if not auto_combat_enabled:
         return
-
     if not is_instance_valid(current_target):
         current_target = _find_nearest_target()
         target_changed.emit(current_target)
-
     if is_instance_valid(current_target):
         var player := get_tree().get_first_node_in_group("player") as Node2D
         if not is_instance_valid(player):
