@@ -17,6 +17,9 @@ size = Vector2(24, 24)
 [node name="CombatDirector" type="Node" parent="."]
 script = ExtResource("4_combat")
 
+[node name="QuestDirector" type="Node" parent="."]
+script = ExtResource("8_quest")
+
 [node name="World" type="Node2D" parent="."]
 script = ExtResource("2_world")
 
