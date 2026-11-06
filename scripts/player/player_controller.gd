@@ -19,6 +19,8 @@ const AUTOSAVE_INTERVAL: float = 8.0
 var health: float
 var level: int = 1
 var experience: int = 0
+var gold: int = 100
+var potions: int = 0
 var inventory: Array[Dictionary] = []
 var equipment: Dictionary = {"weapon": {}, "armor": {}}
 var _experience_required: int = 100
@@ -126,6 +128,37 @@ func add_experience(amount: int) -> void:
     experience_changed.emit(experience, _experience_required, level)
     save_game()
 
+func add_gold(amount: int) -> void:
+    if amount <= 0:
+        return
+    gold += amount
+    save_game()
+
+func buy_health_potion() -> bool:
+    if gold < 30:
+        return false
+    gold -= 30
+    potions += 1
+    save_game()
+    return true
+
+func use_health_potion() -> bool:
+    if potions <= 0 or health >= max_health or _is_dead:
+        return false
+    potions -= 1
+    health = minf(max_health, health + 60.0)
+    health_changed.emit(health, max_health)
+    save_game()
+    return true
+
+func teleport_to(destination: Vector2) -> void:
+    if _is_dead:
+        return
+    clear_auto_move_target()
+    global_position = destination
+    velocity = Vector2.ZERO
+    save_game()
+
 func add_inventory_item(item: Dictionary) -> void:
     if item.is_empty():
         return
@@ -213,6 +246,8 @@ func save_game() -> void:
         "experience": experience,
         "experience_required": _experience_required,
         "health": health,
+        "gold": gold,
+        "potions": potions,
         "position_x": global_position.x,
         "position_y": global_position.y,
         "inventory": inventory_data,
@@ -261,6 +296,8 @@ func _load_game() -> void:
     global_position = Vector2(saved_x, saved_y)
     health = float(parsed.get("health", max_health))
     health = clampf(health, 0.0, max_health)
+    gold = maxi(0, int(parsed.get("gold", 100)))
+    potions = maxi(0, int(parsed.get("potions", 0)))
 
 func _exit_tree() -> void:
     if is_inside_tree():

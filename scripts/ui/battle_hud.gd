@@ -22,12 +22,23 @@ var _dialogue_text: Label
 var _dialogue_action: Button
 var _quest_node: Node
 var _npc: Node2D
+var _nearby_npc: Node2D
+var _service_npcs: Array[Node2D] = []
+var _dialogue_title: Label
+var _dialogue_secondary: Button
+var _currency_text: Label
+var _potion_button: Button
+var _teleport_index := 0
+const TELEPORTS := [{"name":"守林新手村","position":Vector2(360,320)},{"name":"林间入口","position":Vector2(360,450)},{"name":"幽暗密林","position":Vector2(360,620)},{"name":"古代遗迹","position":Vector2(360,800)},{"name":"遗忘祭坛","position":Vector2(456,1000)}]
 
 func _ready() -> void:
     _player = get_tree().get_first_node_in_group("player")
     _combat = get_tree().get_first_node_in_group("combat_director")
     _quest_node = get_tree().get_first_node_in_group("quest_director")
     _npc = get_tree().get_first_node_in_group("quest_npc") as Node2D
+    for candidate in get_tree().get_nodes_in_group("service_npcs"):
+        if candidate is Node2D:
+            _service_npcs.append(candidate)
     _build_hud()
     if is_instance_valid(_player):
         _player.connect("health_changed", Callable(self, "_on_health_changed"))
@@ -57,10 +68,25 @@ func _ready() -> void:
         _quest_node.call_deferred("_publish")
 
 func _process(_delta: float) -> void:
-    if is_instance_valid(_npc) and is_instance_valid(_player):
-        _npc_button.visible = _npc.call("is_player_near", _player)
-    else:
+    _nearby_npc = null
+    if not is_instance_valid(_player):
         _npc_button.visible = false
+        return
+    var nearest_distance := INF
+    var candidates: Array[Node2D] = []
+    if is_instance_valid(_npc):
+        candidates.append(_npc)
+    candidates.append_array(_service_npcs)
+    for candidate in candidates:
+        if not is_instance_valid(candidate) or not candidate.call("is_player_near", _player):
+            continue
+        var distance := candidate.global_position.distance_to(_player.global_position)
+        if distance < nearest_distance:
+            nearest_distance = distance
+            _nearby_npc = candidate
+    _npc_button.visible = is_instance_valid(_nearby_npc)
+    if is_instance_valid(_nearby_npc):
+        _npc_button.text = "交谈 · 村长" if _nearby_npc == _npc else "交谈 · " + str(_nearby_npc.get("display_name"))
 
 func _build_hud() -> void:
     var root := Control.new()
@@ -85,6 +111,8 @@ func _build_hud() -> void:
     _notice_text = _make_label(root, Vector2(24, 232), Vector2(520, 22), 13, Color("#8fe6b1"))
     _region_text = _make_label(root, Vector2(24, 74), Vector2(320, 20), 13, Color("#e2d2a9"))
     _region_text.text = "区域：林间入口 · 推荐等级 1"
+    _currency_text = _make_label(root, Vector2(24, 54), Vector2(250, 20), 13, Color("#f2d58d"))
+    _currency_text.text = "金币 100  ·  药剂 0"
     _quest_text = _make_label(root, Vector2(24, 748), Vector2(500, 48), 13, Color("#f1d7a6"))
     _quest_text.text = "主线：清理林间 · 与守林村长交谈"
     _save_text = _make_label(root, Vector2(24, 708), Vector2(300, 20), 12, Color("#b7c7b9"))
@@ -126,6 +154,10 @@ func _build_hud() -> void:
     _inventory_text.custom_minimum_size = Vector2(380, 160)
     _inventory_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     content.add_child(_inventory_text)
+    _potion_button = Button.new()
+    _potion_button.text = "使用生命药剂（恢复60）"
+    _potion_button.pressed.connect(_use_potion)
+    content.add_child(_potion_button)
     _weapon_button = Button.new()
     _weapon_button.text = "装备更强武器"
     _weapon_button.pressed.connect(_equip_weapon)
@@ -146,10 +178,10 @@ func _build_hud() -> void:
     root.add_child(_dialogue_panel)
     var dialogue_box := VBoxContainer.new()
     _dialogue_panel.add_child(dialogue_box)
-    var dialogue_title := Label.new()
-    dialogue_title.text = "守林村长"
-    dialogue_title.add_theme_font_size_override("font_size", 21)
-    dialogue_box.add_child(dialogue_title)
+    _dialogue_title = Label.new()
+    _dialogue_title.text = "守林村长"
+    _dialogue_title.add_theme_font_size_override("font_size", 21)
+    dialogue_box.add_child(_dialogue_title)
     _dialogue_text = Label.new()
     _dialogue_text.custom_minimum_size = Vector2(530, 120)
     _dialogue_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -157,6 +189,11 @@ func _build_hud() -> void:
     _dialogue_action = Button.new()
     _dialogue_action.pressed.connect(_on_dialogue_action)
     dialogue_box.add_child(_dialogue_action)
+    _dialogue_secondary = Button.new()
+    _dialogue_secondary.text = "切换目的地"
+    _dialogue_secondary.visible = false
+    _dialogue_secondary.pressed.connect(_cycle_teleport)
+    dialogue_box.add_child(_dialogue_secondary)
     var dialogue_close := Button.new()
     dialogue_close.text = "离开"
     dialogue_close.pressed.connect(func(): _dialogue_panel.visible = false)
@@ -172,20 +209,73 @@ func _make_label(parent: Control, pos: Vector2, dimensions: Vector2, size: int, 
     return label
 
 func _open_npc_dialogue() -> void:
-    if not is_instance_valid(_quest_node):
+    if not is_instance_valid(_nearby_npc):
         return
-    _dialogue_text.text = _quest_node.call("get_npc_dialogue")
-    _dialogue_action.text = _quest_node.call("get_npc_action_text")
     _dialogue_panel.visible = true
+    _dialogue_secondary.visible = false
+    if _nearby_npc == _npc:
+        _dialogue_title.text = "守林村长"
+        _dialogue_text.text = _quest_node.call("get_npc_dialogue")
+        _dialogue_action.text = _quest_node.call("get_npc_action_text")
+        return
+    var service := str(_nearby_npc.get("service_type"))
+    _dialogue_title.text = str(_nearby_npc.get("display_name"))
+    match service:
+        "blacksmith":
+            _dialogue_text.text = "装备整理服务：可将背包中属性更好的武器、护甲直接替换上身。"
+            _dialogue_action.text = "一键装备更强武器与护甲"
+        "merchant":
+            _dialogue_text.text = "生命药剂售价 30 金币，使用后恢复 60 点生命。当前金币：%d，药剂：%d。" % [int(_player.get("gold")), int(_player.get("potions"))]
+            _dialogue_action.text = "购买生命药剂 · 30金币"
+        "guide":
+            _dialogue_text.text = "选择旅途节点。传送免费；深入区域存在更强敌人。"
+            _dialogue_secondary.visible = true
+            _dialogue_text.text += "\n当前目的地：" + str(TELEPORTS[_teleport_index].name)
+            _dialogue_action.text = "传送至此处"
 
 func _on_dialogue_action() -> void:
-    if not is_instance_valid(_quest_node):
+    if not is_instance_valid(_nearby_npc):
         return
-    if _quest_node.call("can_turn_in"):
-        _quest_node.call("turn_in_current_quest")
-    elif not bool(_quest_node.get("accepted")):
-        _quest_node.call("accept_current_quest")
-    _open_npc_dialogue()
+    if _nearby_npc == _npc:
+        if _quest_node.call("can_turn_in"):
+            _quest_node.call("turn_in_current_quest")
+        elif not bool(_quest_node.get("accepted")):
+            _quest_node.call("accept_current_quest")
+        _open_npc_dialogue()
+        return
+    match str(_nearby_npc.get("service_type")):
+        "blacksmith":
+            var weapon_ok: bool = _player.call("equip_best", "weapon")
+            var armor_ok: bool = _player.call("equip_best", "armor")
+            _notice_text.text = "装备整理完成" if weapon_ok or armor_ok else "背包中暂无可升级装备"
+            _refresh_inventory()
+        "merchant":
+            if _player.call("buy_health_potion"):
+                _notice_text.text = "购买成功：生命药剂 ×1"
+            else:
+                _notice_text.text = "金币不足：生命药剂需要 30 金币"
+        "guide":
+            var destination: Dictionary = TELEPORTS[_teleport_index]
+            _player.call("teleport_to", destination.position)
+            _notice_text.text = "已传送至：" + str(destination.name)
+            _dialogue_panel.visible = false
+    if is_instance_valid(_currency_text):
+        _currency_text.text = "金币 %d  ·  药剂 %d" % [int(_player.get("gold")), int(_player.get("potions"))]
+    if _dialogue_panel.visible and is_instance_valid(_nearby_npc) and _nearby_npc != _npc:
+        _open_npc_dialogue()
+
+func _cycle_teleport() -> void:
+    _teleport_index = (_teleport_index + 1) % TELEPORTS.size()
+    _dialogue_text.text = "选择目的地：%s\n传送免费。深处存在高等级敌人。" % str(TELEPORTS[_teleport_index].name)
+
+func _use_potion() -> void:
+    if _player.call("use_health_potion"):
+        _notice_text.text = "使用生命药剂，恢复 60 点生命"
+    elif int(_player.get("potions")) <= 0:
+        _notice_text.text = "没有生命药剂，请前往商人处购买"
+    else:
+        _notice_text.text = "生命值已满，无需使用药剂"
+    _refresh_inventory()
 
 func _toggle_inventory() -> void:
     _inventory_panel.visible = not _inventory_panel.visible
@@ -203,7 +293,11 @@ func _refresh_inventory() -> void:
             var slot_name := "武器" if str(item.get("slot", "")) == "weapon" else "护甲"
             var bonus := "+%d攻击" % int(item.get("attack", 0)) if slot_name == "武器" else "+%d生命" % int(item.get("health", 0))
             lines.append("%s [%s] %s" % [str(item.get("name", "装备")), slot_name, bonus])
+    lines.append("")
+    lines.append("金币：%d    生命药剂：%d" % [int(_player.get("gold")), int(_player.get("potions"))])
     _inventory_text.text = "\n".join(lines)
+    _potion_button.disabled = int(_player.get("potions")) <= 0 or float(_player.get("health")) >= float(_player.get("max_health"))
+    _currency_text.text = "金币 %d  ·  药剂 %d" % [int(_player.get("gold")), int(_player.get("potions"))]
     _weapon_button.disabled = not _has_upgrade("weapon")
     _armor_button.disabled = not _has_upgrade("armor")
 
