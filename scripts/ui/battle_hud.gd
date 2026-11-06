@@ -14,6 +14,7 @@ var _inventory_text: Label
 var _weapon_button: Button
 var _armor_button: Button
 var _save_text: Label
+var _region_text: Label
 
 func _ready() -> void:
     _player = get_tree().get_first_node_in_group("player")
@@ -31,6 +32,11 @@ func _ready() -> void:
         _on_health_changed(float(_player.get("health")), float(_player.get("max_health")))
         _on_experience_changed(int(_player.get("experience")), int(_player.get("_experience_required")), int(_player.get("level")))
         _refresh_inventory()
+    var world := get_tree().get_first_node_in_group("world_navigation")
+    if is_instance_valid(world) and world.has_signal("region_changed"):
+        world.connect("region_changed", Callable(self, "_on_region_changed"))
+        var region: Dictionary = world.call("get_current_region")
+        _on_region_changed(str(region.name), int(region.level))
     if is_instance_valid(_combat):
         _combat.connect("mode_changed", Callable(self, "_on_mode_changed"))
         _combat.connect("target_changed", Callable(self, "_on_target_changed"))
@@ -58,6 +64,8 @@ func _build_hud() -> void:
     _target_text = _make_label(root, Vector2(24, 205), Vector2(300, 22), 13, Color("#e4b69a"))
     _target_text.text = "目标：未锁定"
     _notice_text = _make_label(root, Vector2(24, 232), Vector2(420, 22), 13, Color("#8fe6b1"))
+    _region_text = _make_label(root, Vector2(24, 74), Vector2(320, 20), 13, Color("#e2d2a9"))
+    _region_text.text = "区域：林间入口 · 推荐等级 1"
     _save_text = _make_label(root, Vector2(24, 708), Vector2(300, 20), 12, Color("#b7c7b9"))
     var save_button := Button.new()
     save_button.text = "立即存档"
@@ -186,6 +194,10 @@ func _on_player_respawned() -> void:
 func _save_now() -> void:
     if is_instance_valid(_player):
         _player.call("save_game")
+
+func _on_region_changed(region_name: String, recommended_level: int) -> void:
+    if is_instance_valid(_region_text):
+        _region_text.text = "区域：%s · 推荐等级 %d" % [region_name, recommended_level]
 
 func _on_save_status(message: String) -> void:
     if is_instance_valid(_save_text):

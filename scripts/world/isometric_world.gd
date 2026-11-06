@@ -15,6 +15,16 @@ const EDGE_COLOR := Color("#9aab83")
 
 var _astar := AStarGrid2D.new()
 
+signal region_changed(region_name: String, recommended_level: int)
+
+var _current_region_id := ""
+const REGIONS := [
+    {"id":"entrance", "name":"林间入口", "level":1, "min_y":0.0, "max_y":390.0, "color":Color("#344b42")},
+    {"id":"deepwood", "name":"幽暗密林", "level":3, "min_y":390.0, "max_y":650.0, "color":Color("#30483d")},
+    {"id":"ruins", "name":"古代遗迹", "level":5, "min_y":650.0, "max_y":900.0, "color":Color("#49483e")},
+    {"id":"clearing", "name":"遗忘祭坛", "level":8, "min_y":900.0, "max_y":1300.0, "color":Color("#51413b")}
+]
+
 func _ready() -> void:
     add_to_group("world_navigation")
     _setup_navigation()
@@ -23,6 +33,30 @@ func _ready() -> void:
     _create_obstacle(_iso_point(5.5, 9.5), 31.0)
     _create_obstacle(_iso_point(3.5, 12.5), 22.0)
     queue_redraw()
+    _update_player_region()
+
+func _process(_delta: float) -> void:
+    _update_player_region()
+
+func get_region_at(world_position: Vector2) -> Dictionary:
+    for region in REGIONS:
+        if world_position.y >= float(region.min_y) and world_position.y < float(region.max_y):
+            return region
+    return REGIONS[0]
+
+func get_current_region() -> Dictionary:
+    var player := get_tree().get_first_node_in_group("player") as Node2D
+    return get_region_at(player.global_position) if is_instance_valid(player) else REGIONS[0]
+
+func _update_player_region() -> void:
+    var player := get_tree().get_first_node_in_group("player") as Node2D
+    if not is_instance_valid(player):
+        return
+    var region := get_region_at(player.global_position)
+    if str(region.id) == _current_region_id:
+        return
+    _current_region_id = str(region.id)
+    region_changed.emit(str(region.name), int(region.level))
 
 func _iso_point(grid_x: float, grid_y: float) -> Vector2:
     # Rotated 90 degrees from the usual wide isometric projection.
@@ -43,7 +77,9 @@ func _draw() -> void:
                 center + Vector2(0.0, half_height),
                 center + Vector2(-half_width, 0.0)
             ])
-            var tile_color := FLOOR_A if (x + y) % 2 == 0 else FLOOR_B
+            var region := get_region_at(center)
+            var base_color: Color = region.color
+            var tile_color := base_color.lightened(0.035) if (x + y) % 2 == 0 else base_color
             draw_colored_polygon(diamond, tile_color)
             draw_polyline(
                 PackedVector2Array([diamond[0], diamond[1], diamond[2], diamond[3], diamond[0]]),
@@ -64,6 +100,12 @@ func _draw() -> void:
     _draw_stone(_iso_point(2.5, 5.5), 25.0)
     _draw_stone(_iso_point(5.5, 9.5), 31.0)
     _draw_stone(_iso_point(3.5, 12.5), 22.0)
+    var font := ThemeDB.fallback_font
+    if font:
+        draw_string(font, Vector2(350, 170), "林间入口 · Lv.1", HORIZONTAL_ALIGNMENT_CENTER, 220.0, 17, Color("#d5e4c9"))
+        draw_string(font, Vector2(350, 470), "幽暗密林 · Lv.3", HORIZONTAL_ALIGNMENT_CENTER, 220.0, 17, Color("#d5e4c9"))
+        draw_string(font, Vector2(350, 730), "古代遗迹 · Lv.5", HORIZONTAL_ALIGNMENT_CENTER, 220.0, 17, Color("#e2d2a9"))
+        draw_string(font, Vector2(350, 1000), "遗忘祭坛 · Lv.8", HORIZONTAL_ALIGNMENT_CENTER, 220.0, 17, Color("#e7b79e"))
 
 func _draw_stone(center: Vector2, radius: float) -> void:
     draw_circle(center + Vector2(0.0, 7.0), radius + 3.0, Color("#26362f"))

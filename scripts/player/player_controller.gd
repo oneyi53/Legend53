@@ -66,7 +66,7 @@ func _physics_process(delta: float) -> void:
         _auto_target = null
         direction = Vector2((input_vector.x - input_vector.y) * 0.5, input_vector.x + input_vector.y)
     elif is_instance_valid(_auto_target):
-        _path_recalc_timer -= _delta
+        _path_recalc_timer -= delta
         if _path_recalc_timer <= 0.0:
             _rebuild_auto_path()
         while _path_index < _path_points.size() and global_position.distance_to(_path_points[_path_index]) < 18.0:
