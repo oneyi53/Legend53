@@ -1,8 +1,10 @@
 extends CharacterBody2D
 
-## Portrait movement, auto-approach and a minimal death/respawn loop.
+## Portrait movement, auto-approach, combat health and offline character progression.
 
 signal health_changed(current: float, maximum: float)
+signal experience_changed(current: int, required: int, current_level: int)
+signal level_up(new_level: int)
 signal died
 signal respawned
 
@@ -11,6 +13,9 @@ signal respawned
 @export var respawn_delay: float = 2.0
 
 var health: float
+var level: int = 1
+var experience: int = 0
+var _experience_required: int = 100
 var _spawn_position: Vector2
 var _is_dead: bool = false
 var _auto_target: Node2D
@@ -20,6 +25,7 @@ func _ready() -> void:
     _spawn_position = global_position
     add_to_group("player")
     health_changed.emit(health, max_health)
+    experience_changed.emit(experience, _experience_required, level)
 
 func _physics_process(_delta: float) -> void:
     if _is_dead:
@@ -60,6 +66,23 @@ func take_damage(amount: float) -> void:
     health_changed.emit(health, max_health)
     if health <= 0.0:
         _begin_respawn()
+
+func add_experience(amount: int) -> void:
+    if amount <= 0 or _is_dead:
+        return
+    experience += amount
+    while experience >= _experience_required:
+        experience -= _experience_required
+        _level_up()
+    experience_changed.emit(experience, _experience_required, level)
+
+func _level_up() -> void:
+    level += 1
+    _experience_required = 100 + (level - 1) * 45
+    max_health += 12.0
+    health = max_health
+    health_changed.emit(health, max_health)
+    level_up.emit(level)
 
 func _begin_respawn() -> void:
     _is_dead = true

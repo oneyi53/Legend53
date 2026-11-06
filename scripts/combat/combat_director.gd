@@ -2,21 +2,28 @@ extends Node
 
 signal mode_changed(is_auto: bool)
 signal target_changed(target: Node2D)
+signal loot_message(text: String)
+
+const LOOT_SCRIPT = preload("res://scripts/combat/experience_drop.gd")
 
 @export var auto_notice_range: float = 520.0
 @export var auto_attack_range: float = 58.0
 @export var manual_target_range: float = 280.0
 @export var attack_damage: float = 18.0
 @export var attack_interval: float = 0.72
+@export_range(0.0, 1.0) var loot_drop_chance: float = 0.65
 
 var auto_combat_enabled: bool = false
 var current_target: Node2D
 var _attack_timer: float = 0.0
+var _bound_enemies: Array[Node] = []
 
 func _ready() -> void:
     add_to_group("combat_director")
+    call_deferred("_bind_existing_enemies")
 
 func _process(delta: float) -> void:
+    _bind_existing_enemies()
     _attack_timer = maxf(0.0, _attack_timer - delta)
     if Input.is_action_just_pressed("toggle_auto"):
         toggle_auto_combat()
@@ -44,6 +51,37 @@ func _process(delta: float) -> void:
         if player.has_method("clear_auto_move_target"):
             player.clear_auto_move_target()
         _attack_current_target()
+
+func _bind_existing_enemies() -> void:
+    for enemy in get_tree().get_nodes_in_group("enemies"):
+        if not is_instance_valid(enemy) or _bound_enemies.has(enemy):
+            continue
+        if enemy.has_signal("defeated"):
+            enemy.connect("defeated", Callable(self, "_on_enemy_defeated"))
+            _bound_enemies.append(enemy)
+
+func _on_enemy_defeated(enemy: Node2D) -> void:
+    var player := get_tree().get_first_node_in_group("player")
+    if is_instance_valid(player) and player.has_method("add_experience"):
+        player.add_experience(20)
+    if randf() <= loot_drop_chance:
+        _spawn_experience_drop(enemy.global_position)
+    if current_target == enemy:
+        current_target = null
+        target_changed.emit(null)
+
+func _spawn_experience_drop(drop_position: Vector2) -> void:
+    var drop := Area2D.new()
+    drop.set_script(LOOT_SCRIPT)
+    drop.global_position = drop_position
+    get_tree().current_scene.add_child(drop)
+    drop.connect("collected", Callable(self, "_on_loot_collected"))
+
+func _on_loot_collected(amount: int) -> void:
+    var player := get_tree().get_first_node_in_group("player")
+    if is_instance_valid(player) and player.has_method("add_experience"):
+        player.add_experience(amount)
+    loot_message.emit("拾取经验结晶 +%d EXP" % amount)
 
 func toggle_auto_combat() -> void:
     auto_combat_enabled = not auto_combat_enabled
