@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/player/player_controller.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/world/isometric_world.gd" id="2_world"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scripts/ui/battle_hud.gd" id="6_battle_hud"]
 [ext_resource type="Script" path="res://scripts/world/enemy_spawner.gd" id="7_spawner"]
 [ext_resource type="Script" path="res://scripts/quest/quest_director.gd" id="8_quest"]
+[ext_resource type="Script" path="res://scripts/world/village_elder.gd" id="9_elder"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_player"]
 size = Vector2(24, 24)
@@ -22,6 +23,10 @@ script = ExtResource("8_quest")
 
 [node name="World" type="Node2D" parent="."]
 script = ExtResource("2_world")
+
+[node name="VillageElder" type="Node2D" parent="."]
+position = Vector2(360, 360)
+script = ExtResource("9_elder")
 
 [node name="Player" type="CharacterBody2D" parent="."]
 position = Vector2(360, 640)

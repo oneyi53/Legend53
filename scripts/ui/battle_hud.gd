@@ -16,10 +16,18 @@ var _armor_button: Button
 var _save_text: Label
 var _region_text: Label
 var _quest_text: Label
+var _npc_button: Button
+var _dialogue_panel: PanelContainer
+var _dialogue_text: Label
+var _dialogue_action: Button
+var _quest_node: Node
+var _npc: Node2D
 
 func _ready() -> void:
     _player = get_tree().get_first_node_in_group("player")
     _combat = get_tree().get_first_node_in_group("combat_director")
+    _quest_node = get_tree().get_first_node_in_group("quest_director")
+    _npc = get_tree().get_first_node_in_group("quest_npc") as Node2D
     _build_hud()
     if is_instance_valid(_player):
         _player.connect("health_changed", Callable(self, "_on_health_changed"))
@@ -43,11 +51,16 @@ func _ready() -> void:
         _combat.connect("target_changed", Callable(self, "_on_target_changed"))
         _combat.connect("loot_message", Callable(self, "_on_loot_message"))
         _on_mode_changed(bool(_combat.get("auto_combat_enabled")))
-    var quest_node := get_tree().get_first_node_in_group("quest_director")
-    if is_instance_valid(quest_node):
-        quest_node.quest_updated.connect(_on_quest_updated)
-        quest_node.quest_notice.connect(_on_loot_message)
-        quest_node.call_deferred("_publish")
+    if is_instance_valid(_quest_node):
+        _quest_node.quest_updated.connect(_on_quest_updated)
+        _quest_node.quest_notice.connect(_on_loot_message)
+        _quest_node.call_deferred("_publish")
+
+func _process(_delta: float) -> void:
+    if is_instance_valid(_npc) and is_instance_valid(_player):
+        _npc_button.visible = _npc.call("is_player_near", _player)
+    else:
+        _npc_button.visible = false
 
 func _build_hud() -> void:
     var root := Control.new()
@@ -69,11 +82,11 @@ func _build_hud() -> void:
     _mode_text = _make_label(root, Vector2(24, 180), Vector2(240, 22), 14, Color("#d8e3c8"))
     _target_text = _make_label(root, Vector2(24, 205), Vector2(300, 22), 13, Color("#e4b69a"))
     _target_text.text = "目标：未锁定"
-    _notice_text = _make_label(root, Vector2(24, 232), Vector2(420, 22), 13, Color("#8fe6b1"))
+    _notice_text = _make_label(root, Vector2(24, 232), Vector2(520, 22), 13, Color("#8fe6b1"))
     _region_text = _make_label(root, Vector2(24, 74), Vector2(320, 20), 13, Color("#e2d2a9"))
     _region_text.text = "区域：林间入口 · 推荐等级 1"
-    _quest_text = _make_label(root, Vector2(24, 748), Vector2(620, 48), 13, Color("#f1d7a6"))
-    _quest_text.text = "主线：清理林间 · 击败森林劫掠者 0 / 3"
+    _quest_text = _make_label(root, Vector2(24, 748), Vector2(500, 48), 13, Color("#f1d7a6"))
+    _quest_text.text = "主线：清理林间 · 与守林村长交谈"
     _save_text = _make_label(root, Vector2(24, 708), Vector2(300, 20), 12, Color("#b7c7b9"))
     var save_button := Button.new()
     save_button.text = "立即存档"
@@ -82,7 +95,6 @@ func _build_hud() -> void:
     save_button.mouse_filter = Control.MOUSE_FILTER_STOP
     save_button.pressed.connect(_save_now)
     root.add_child(save_button)
-
     var open_button := Button.new()
     open_button.text = "背包 / 装备"
     open_button.position = Vector2(24, 266)
@@ -90,7 +102,14 @@ func _build_hud() -> void:
     open_button.mouse_filter = Control.MOUSE_FILTER_STOP
     open_button.pressed.connect(_toggle_inventory)
     root.add_child(open_button)
-
+    _npc_button = Button.new()
+    _npc_button.text = "交谈"
+    _npc_button.position = Vector2(550, 748)
+    _npc_button.size = Vector2(126, 44)
+    _npc_button.visible = false
+    _npc_button.mouse_filter = Control.MOUSE_FILTER_STOP
+    _npc_button.pressed.connect(_open_npc_dialogue)
+    root.add_child(_npc_button)
     _inventory_panel = PanelContainer.new()
     _inventory_panel.position = Vector2(24, 312)
     _inventory_panel.size = Vector2(420, 330)
@@ -119,6 +138,29 @@ func _build_hud() -> void:
     close_button.text = "关闭"
     close_button.pressed.connect(_toggle_inventory)
     content.add_child(close_button)
+    _dialogue_panel = PanelContainer.new()
+    _dialogue_panel.position = Vector2(70, 430)
+    _dialogue_panel.size = Vector2(580, 250)
+    _dialogue_panel.visible = false
+    _dialogue_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+    root.add_child(_dialogue_panel)
+    var dialogue_box := VBoxContainer.new()
+    _dialogue_panel.add_child(dialogue_box)
+    var dialogue_title := Label.new()
+    dialogue_title.text = "守林村长"
+    dialogue_title.add_theme_font_size_override("font_size", 21)
+    dialogue_box.add_child(dialogue_title)
+    _dialogue_text = Label.new()
+    _dialogue_text.custom_minimum_size = Vector2(530, 120)
+    _dialogue_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    dialogue_box.add_child(_dialogue_text)
+    _dialogue_action = Button.new()
+    _dialogue_action.pressed.connect(_on_dialogue_action)
+    dialogue_box.add_child(_dialogue_action)
+    var dialogue_close := Button.new()
+    dialogue_close.text = "离开"
+    dialogue_close.pressed.connect(func(): _dialogue_panel.visible = false)
+    dialogue_box.add_child(dialogue_close)
 
 func _make_label(parent: Control, pos: Vector2, dimensions: Vector2, size: int, color: Color) -> Label:
     var label := Label.new()
@@ -128,6 +170,22 @@ func _make_label(parent: Control, pos: Vector2, dimensions: Vector2, size: int, 
     label.add_theme_color_override("font_color", color)
     parent.add_child(label)
     return label
+
+func _open_npc_dialogue() -> void:
+    if not is_instance_valid(_quest_node):
+        return
+    _dialogue_text.text = _quest_node.call("get_npc_dialogue")
+    _dialogue_action.text = _quest_node.call("get_npc_action_text")
+    _dialogue_panel.visible = true
+
+func _on_dialogue_action() -> void:
+    if not is_instance_valid(_quest_node):
+        return
+    if _quest_node.call("can_turn_in"):
+        _quest_node.call("turn_in_current_quest")
+    elif not bool(_quest_node.get("accepted")):
+        _quest_node.call("accept_current_quest")
+    _open_npc_dialogue()
 
 func _toggle_inventory() -> void:
     _inventory_panel.visible = not _inventory_panel.visible
@@ -197,7 +255,6 @@ func _on_player_died() -> void:
 func _on_player_respawned() -> void:
     _on_health_changed(float(_player.get("health")), float(_player.get("max_health")))
     _notice_text.text = "已返回战场"
-
 
 func _save_now() -> void:
     if is_instance_valid(_player):
