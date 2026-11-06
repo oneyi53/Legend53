@@ -15,6 +15,7 @@ var _weapon_button: Button
 var _armor_button: Button
 var _save_text: Label
 var _region_text: Label
+var _quest_text: Label
 
 func _ready() -> void:
     _player = get_tree().get_first_node_in_group("player")
