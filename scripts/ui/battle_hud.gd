@@ -20,7 +20,7 @@ func _ready() -> void:
         _on_health_changed(float(_player.get("health")), float(_player.get("max_health")))
     if is_instance_valid(_combat):
         _combat.connect("mode_changed", Callable(self, "_on_mode_changed"))
-        _combat.target_changed.connect(_on_target_changed)
+        _combat.connect("target_changed", Callable(self, "_on_target_changed"))
         _on_mode_changed(bool(_combat.get("auto_combat_enabled")))
 
 func _build_hud() -> void:
