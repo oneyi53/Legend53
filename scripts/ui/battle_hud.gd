@@ -28,6 +28,8 @@ var _dialogue_title: Label
 var _dialogue_secondary: Button
 var _currency_text: Label
 var _potion_button: Button
+var _skill_button: Button
+var _class_button: Button
 var _teleport_index := 0
 const TELEPORTS := [{"id":"village","name":"守林新手村","position":Vector2(360,320)},{"id":"entrance","name":"林间入口","position":Vector2(360,450)},{"id":"deepwood","name":"幽暗密林","position":Vector2(360,620)},{"id":"ruins","name":"古代遗迹","position":Vector2(360,800)},{"id":"clearing","name":"遗忘祭坛","position":Vector2(456,1000)}]
 
@@ -85,6 +87,10 @@ func _process(_delta: float) -> void:
         if distance < nearest_distance:
             nearest_distance = distance
             _nearby_npc = candidate
+    if is_instance_valid(_skill_button):
+        var remaining := float(_combat.call("get_skill_cooldown_remaining")) if is_instance_valid(_combat) else 0.0
+        _skill_button.disabled = remaining > 0.0
+        _skill_button.text = "技能冷却 %.1f秒" % remaining if remaining > 0.0 else str(_player.call("get_skill_name"))
     _npc_button.visible = is_instance_valid(_nearby_npc)
     if is_instance_valid(_nearby_npc):
         _npc_button.text = "交谈 · 村长" if _nearby_npc == _npc else "交谈 · " + str(_nearby_npc.get("display_name"))
@@ -110,6 +116,13 @@ func _build_hud() -> void:
     _target_text = _make_label(root, Vector2(24, 205), Vector2(300, 22), 13, Color("#e4b69a"))
     _target_text.text = "目标：未锁定"
     _notice_text = _make_label(root, Vector2(24, 232), Vector2(520, 22), 13, Color("#8fe6b1"))
+    _skill_button = Button.new()
+    _skill_button.position = Vector2(536, 650)
+    _skill_button.size = Vector2(160, 58)
+    _skill_button.text = "旋风斩"
+    _skill_button.mouse_filter = Control.MOUSE_FILTER_STOP
+    _skill_button.pressed.connect(_cast_skill)
+    root.add_child(_skill_button)
     _region_text = _make_label(root, Vector2(24, 74), Vector2(320, 20), 13, Color("#e2d2a9"))
     _region_text.text = "区域：林间入口 · 推荐等级 1"
     _currency_text = _make_label(root, Vector2(24, 54), Vector2(250, 20), 13, Color("#f2d58d"))
@@ -141,7 +154,7 @@ func _build_hud() -> void:
     root.add_child(_npc_button)
     _inventory_panel = PanelContainer.new()
     _inventory_panel.position = Vector2(24, 312)
-    _inventory_panel.size = Vector2(420, 330)
+    _inventory_panel.size = Vector2(420, 380)
     _inventory_panel.visible = false
     _inventory_panel.mouse_filter = Control.MOUSE_FILTER_STOP
     root.add_child(_inventory_panel)
@@ -151,6 +164,10 @@ func _build_hud() -> void:
     title.text = "角色装备与背包"
     title.add_theme_font_size_override("font_size", 20)
     content.add_child(title)
+    _class_button = Button.new()
+    _class_button.text = "切换职业"
+    _class_button.pressed.connect(_cycle_class)
+    content.add_child(_class_button)
     _inventory_text = Label.new()
     _inventory_text.custom_minimum_size = Vector2(380, 160)
     _inventory_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -304,6 +321,22 @@ func _on_gold_changed(_amount: int) -> void:
         _currency_text.text = "金币 %d  ·  药剂 %d" % [int(_player.get("gold")), int(_player.get("potions"))]
     _refresh_inventory()
 
+func _cast_skill() -> void:
+    if is_instance_valid(_combat) and _combat.call("cast_class_skill"):
+        _update_class_skill_button()
+
+func _cycle_class() -> void:
+    var current := str(_player.get("class_id"))
+    var next_class := "mage" if current == "warrior" else ("taoist" if current == "mage" else "warrior")
+    _player.call("switch_class", next_class)
+    _notice_text.text = "已转职为%s：%s" % [str(_player.call("get_class_name")), str(_player.call("get_skill_name"))]
+    _refresh_inventory()
+    _update_class_skill_button()
+
+func _update_class_skill_button() -> void:
+    if is_instance_valid(_skill_button) and is_instance_valid(_player):
+        _skill_button.text = str(_player.call("get_skill_name"))
+
 func _use_potion() -> void:
     if _player.call("use_health_potion"):
         _notice_text.text = "使用生命药剂，恢复 60 点生命"
@@ -321,7 +354,7 @@ func _refresh_inventory() -> void:
     if not is_instance_valid(_inventory_text) or not is_instance_valid(_player):
         return
     var items: Array = _player.get("inventory")
-    var lines := PackedStringArray([str(_player.call("get_equipment_summary")), "", "背包物品："])
+    var lines := PackedStringArray(["职业：%s" % str(_player.call("get_class_name")), str(_player.call("get_equipment_summary")), "", "背包物品："])
     if items.is_empty():
         lines.append("（空）击败森林劫掠者寻找装备")
     else:
@@ -332,6 +365,7 @@ func _refresh_inventory() -> void:
     lines.append("")
     lines.append("金币：%d    生命药剂：%d" % [int(_player.get("gold")), int(_player.get("potions"))])
     _inventory_text.text = "\n".join(lines)
+    _class_button.text = "当前：%s · 点击切换职业" % str(_player.call("get_class_name"))
     _potion_button.disabled = int(_player.get("potions")) <= 0 or float(_player.get("health")) >= float(_player.get("max_health"))
     _currency_text.text = "金币 %d  ·  药剂 %d" % [int(_player.get("gold")), int(_player.get("potions"))]
     _weapon_button.disabled = not _has_upgrade("weapon")

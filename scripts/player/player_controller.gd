@@ -22,6 +22,7 @@ var level: int = 1
 var experience: int = 0
 var gold: int = 100
 var potions: int = 0
+var class_id: String = "warrior"
 var discovered_regions: Array[String] = ["village"]
 var inventory: Array[Dictionary] = []
 var equipment: Dictionary = {"weapon": {}, "armor": {}}
@@ -36,12 +37,57 @@ var _path_recalc_timer: float = 0.0
 var max_health: float:
     get:
         var armor: Dictionary = equipment.get("armor", {})
-        return base_max_health + float(armor.get("health", 0)) + (level - 1) * 12.0
+        var class_health := 135.0 if class_id == "warrior" else (88.0 if class_id == "mage" else 108.0)
+        return class_health + float(armor.get("health", 0)) + (level - 1) * 12.0
 
 var attack_power: float:
     get:
         var weapon: Dictionary = equipment.get("weapon", {})
-        return 18.0 + float(weapon.get("attack", 0)) + (level - 1) * 2.0
+        var class_attack := 18.0 if class_id == "warrior" else (15.0 if class_id == "mage" else 16.0)
+        return class_attack + float(weapon.get("attack", 0)) + (level - 1) * 2.0
+
+var attack_range: float:
+    get:
+        return 58.0 if class_id == "warrior" else (235.0 if class_id == "mage" else 165.0)
+
+var defense_multiplier: float:
+    get:
+        return 0.72 if class_id == "warrior" else (1.12 if class_id == "mage" else 0.90)
+
+func get_class_name() -> String:
+    match class_id:
+        "mage": return "法师"
+        "taoist": return "道士"
+        _: return "战士"
+
+func get_skill_name() -> String:
+    match class_id:
+        "mage": return "烈焰火球"
+        "taoist": return "灵符治疗"
+        _: return "旋风斩"
+
+func switch_class(next_class: String) -> bool:
+    if next_class not in ["warrior", "mage", "taoist"] or next_class == class_id:
+        return false
+    var old_max := max_health
+    var health_ratio := health / maxf(old_max, 1.0)
+    class_id = next_class
+    health = clampf(health_ratio * max_health, 1.0, max_health)
+    health_changed.emit(health, max_health)
+    equipment_changed.emit()
+    save_game()
+    return true
+
+func restore_health(amount: float) -> float:
+    if amount <= 0.0 or _is_dead:
+        return 0.0
+    var before := health
+    health = minf(max_health, health + amount)
+    var restored := health - before
+    if restored > 0.0:
+        health_changed.emit(health, max_health)
+        save_game()
+    return restored
 
 func _ready() -> void:
     _spawn_position = global_position
@@ -84,7 +130,8 @@ func _physics_process(delta: float) -> void:
             _path_points.clear()
     if direction.length_squared() > 1.0:
         direction = direction.normalized()
-    velocity = direction * move_speed
+    var class_speed := move_speed * (1.0 if class_id == "warrior" else (1.06 if class_id == "mage" else 1.02))
+    velocity = direction * class_speed
     move_and_slide()
 
 func set_auto_move_target(target: Node2D) -> void:
@@ -109,7 +156,7 @@ func _rebuild_auto_path() -> void:
 func take_damage(amount: float) -> void:
     if _is_dead or amount <= 0.0:
         return
-    health = maxf(0.0, health - amount)
+    health = maxf(0.0, health - amount * defense_multiplier)
     health_changed.emit(health, max_health)
     if health <= 0.0:
         _begin_respawn()
@@ -282,6 +329,7 @@ func save_game() -> void:
         "health": health,
         "gold": gold,
         "potions": potions,
+        "class_id": class_id,
         "discovered_regions": discovered_regions,
         "position_x": global_position.x,
         "position_y": global_position.y,
@@ -333,6 +381,9 @@ func _load_game() -> void:
     health = clampf(health, 0.0, max_health)
     gold = maxi(0, int(parsed.get("gold", 100)))
     potions = maxi(0, int(parsed.get("potions", 0)))
+    class_id = str(parsed.get("class_id", "warrior"))
+    if class_id not in ["warrior", "mage", "taoist"]:
+        class_id = "warrior"
     discovered_regions.clear()
     discovered_regions.append("village")
     var saved_regions: Variant = parsed.get("discovered_regions", ["village"])

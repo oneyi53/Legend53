@@ -4,6 +4,7 @@ signal mode_changed(is_auto: bool)
 signal target_changed(target: Node2D)
 signal loot_message(text: String)
 signal enemy_defeated(enemy: Node2D)
+signal skill_used(skill_name: String, affected_count: int)
 
 const EXP_LOOT_SCRIPT = preload("res://scripts/combat/experience_drop.gd")
 const GEAR_LOOT_SCRIPT = preload("res://scripts/combat/equipment_drop.gd")
@@ -18,6 +19,7 @@ const GEAR_LOOT_SCRIPT = preload("res://scripts/combat/equipment_drop.gd")
 var auto_combat_enabled: bool = false
 var current_target: Node2D
 var _attack_timer: float = 0.0
+var _skill_cooldown: float = 0.0
 var _bound_enemies: Array[Node] = []
 
 func _ready() -> void:
@@ -27,6 +29,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
     _bind_existing_enemies()
     _attack_timer = maxf(0.0, _attack_timer - delta)
+    _skill_cooldown = maxf(0.0, _skill_cooldown - delta)
     if Input.is_action_just_pressed("toggle_auto"):
         toggle_auto_combat()
     if Input.is_action_just_pressed("attack"):
@@ -44,7 +47,8 @@ func _process(delta: float) -> void:
             player.clear_auto_move_target()
         return
     var distance := player.global_position.distance_to(current_target.global_position)
-    if distance > auto_attack_range:
+    var effective_range := float(player.get("attack_range"))
+    if distance > effective_range:
         if player.has_method("set_auto_move_target"):
             player.set_auto_move_target(current_target)
     else:
@@ -131,8 +135,57 @@ func manual_attack() -> void:
     if not is_instance_valid(current_target):
         return
     var player := get_tree().get_first_node_in_group("player") as Node2D
-    if is_instance_valid(player) and player.global_position.distance_to(current_target.global_position) <= auto_attack_range:
+    var effective_range := float(player.get("attack_range")) if is_instance_valid(player) else auto_attack_range
+    if is_instance_valid(player) and player.global_position.distance_to(current_target.global_position) <= effective_range:
         _attack_current_target()
+
+func get_skill_cooldown_remaining() -> float:
+    return _skill_cooldown
+
+func get_skill_cooldown_duration() -> float:
+    var player := get_tree().get_first_node_in_group("player")
+    if not is_instance_valid(player):
+        return 8.0
+    match str(player.get("class_id")):
+        "mage": return 7.0
+        "taoist": return 9.0
+        _: return 8.0
+
+func cast_class_skill() -> bool:
+    if _skill_cooldown > 0.0:
+        return false
+    var player := get_tree().get_first_node_in_group("player") as Node2D
+    if not is_instance_valid(player) or bool(player.get("_is_dead")):
+        return false
+    var class_key := str(player.get("class_id"))
+    var radius := 132.0
+    var multiplier := 2.35
+    var skill_name := "旋风斩"
+    if class_key == "mage":
+        radius = 245.0
+        multiplier = 2.8
+        skill_name = "烈焰火球"
+    elif class_key == "taoist":
+        radius = 178.0
+        multiplier = 1.9
+        skill_name = "灵符治疗"
+    var hit_count := 0
+    for enemy in get_tree().get_nodes_in_group("enemies"):
+        if not is_instance_valid(enemy) or not enemy is Node2D:
+            continue
+        if player.global_position.distance_to(enemy.global_position) <= radius:
+            if enemy.has_method("take_damage"):
+                enemy.take_damage(float(player.get("attack_power")) * multiplier)
+                hit_count += 1
+    if class_key == "taoist":
+        var missing_health := float(player.get("max_health")) - float(player.get("health"))
+        var restored := minf(float(player.get("max_health")) * 0.28, missing_health)
+        if restored > 0.0:
+            player.call("restore_health", restored)
+    _skill_cooldown = get_skill_cooldown_duration()
+    skill_used.emit(skill_name, hit_count)
+    loot_message.emit("%s发动！命中%d个目标%s" % [skill_name, hit_count, "，治疗效果已生效" if class_key == "taoist" else ""])
+    return true
 
 func _attack_current_target() -> void:
     if _attack_timer > 0.0 or not is_instance_valid(current_target):
