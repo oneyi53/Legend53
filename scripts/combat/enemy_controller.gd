@@ -9,6 +9,8 @@ signal defeated(enemy: Node2D)
 @export var attack_damage: float = 6.0
 @export var attack_interval: float = 1.25
 
+const SAFE_ZONE_END_Y := 390.0
+const SAFE_ZONE_BUFFER := 16.0
 var health: float
 var _attack_timer := 0.0
 var _player: Node2D
@@ -33,8 +35,16 @@ func _physics_process(delta: float) -> void:
         move_and_slide()
         return
     _attack_timer = maxf(0.0, _attack_timer - delta)
+    # The village is a protected sanctuary. Enemies disengage immediately
+    # when the player enters it and cannot cross its southern boundary.
+    if _player.global_position.y < SAFE_ZONE_END_Y:
+        velocity = Vector2.ZERO
+        move_and_slide()
+        return
     var distance := global_position.distance_to(_player.global_position)
     velocity = global_position.direction_to(_player.global_position) * move_speed if distance <= notice_range and distance > attack_range else Vector2.ZERO
+    if global_position.y + velocity.y * delta < SAFE_ZONE_END_Y + SAFE_ZONE_BUFFER:
+        velocity = Vector2.ZERO
     move_and_slide()
     if distance <= attack_range and _attack_timer <= 0.0:
         if _player.has_method("take_damage"):

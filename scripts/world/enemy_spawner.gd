@@ -3,6 +3,7 @@ const ENEMY_SCENE = preload("res://scenes/actors/enemy.tscn")
 @export var maximum_alive: int = 6
 @export var respawn_interval: float = 9.0
 @export var minimum_player_distance: float = 220.0
+const SAFE_ZONE_END_Y := 390.0
 var _timer := 4.0
 var _boss_spawned := false
 var _spawn_points: Array[Dictionary] = [
@@ -23,6 +24,7 @@ func _process(delta: float) -> void:
  var candidates: Array[Dictionary] = []
  for point in _spawn_points:
   var pos: Vector2 = point.position
+  if pos.y < SAFE_ZONE_END_Y + 24.0: continue
   if is_instance_valid(player) and player.global_position.distance_to(pos) < minimum_player_distance: continue
   candidates.append(point)
  if candidates.is_empty(): return

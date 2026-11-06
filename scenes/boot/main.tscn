@@ -29,7 +29,7 @@ position = Vector2(360, 360)
 script = ExtResource("9_elder")
 
 [node name="Player" type="CharacterBody2D" parent="."]
-position = Vector2(360, 640)
+position = Vector2(360, 320)
 script = ExtResource("1_player")
 
 [node name="BodyVisual" type="Polygon2D" parent="Player"]
