@@ -43,6 +43,11 @@ func _ready() -> void:
         _combat.connect("target_changed", Callable(self, "_on_target_changed"))
         _combat.connect("loot_message", Callable(self, "_on_loot_message"))
         _on_mode_changed(bool(_combat.get("auto_combat_enabled")))
+    var quest_node := get_tree().get_first_node_in_group("quest_director")
+    if is_instance_valid(quest_node):
+        quest_node.quest_updated.connect(_on_quest_updated)
+        quest_node.quest_notice.connect(_on_loot_message)
+        quest_node.call_deferred("_publish")
 
 func _build_hud() -> void:
     var root := Control.new()
@@ -67,6 +72,8 @@ func _build_hud() -> void:
     _notice_text = _make_label(root, Vector2(24, 232), Vector2(420, 22), 13, Color("#8fe6b1"))
     _region_text = _make_label(root, Vector2(24, 74), Vector2(320, 20), 13, Color("#e2d2a9"))
     _region_text.text = "区域：林间入口 · 推荐等级 1"
+    _quest_text = _make_label(root, Vector2(24, 748), Vector2(620, 48), 13, Color("#f1d7a6"))
+    _quest_text.text = "主线：清理林间 · 击败森林劫掠者 0 / 3"
     _save_text = _make_label(root, Vector2(24, 708), Vector2(300, 20), 12, Color("#b7c7b9"))
     var save_button := Button.new()
     save_button.text = "立即存档"
@@ -195,6 +202,10 @@ func _on_player_respawned() -> void:
 func _save_now() -> void:
     if is_instance_valid(_player):
         _player.call("save_game")
+
+func _on_quest_updated(title: String, description: String, progress: String, completed: bool) -> void:
+    if is_instance_valid(_quest_text):
+        _quest_text.text = "%s · %s\n%s%s" % [title, progress, description, " · 完成" if completed else ""]
 
 func _on_region_changed(region_name: String, recommended_level: int) -> void:
     if is_instance_valid(_region_text):
