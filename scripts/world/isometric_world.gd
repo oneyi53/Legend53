@@ -13,7 +13,11 @@ const FLOOR_B := Color("#3a5248")
 const GRID_LINE := Color("#607568")
 const EDGE_COLOR := Color("#9aab83")
 
+var _astar := AStarGrid2D.new()
+
 func _ready() -> void:
+    add_to_group("world_navigation")
+    _setup_navigation()
     _create_boundary()
     _create_obstacle(_iso_point(2.5, 5.5), 25.0)
     _create_obstacle(_iso_point(5.5, 9.5), 31.0)
@@ -96,3 +100,49 @@ func _create_obstacle(position_on_map: Vector2, radius: float) -> void:
     circle.radius = radius
     collision.shape = circle
     obstacle.add_child(collision)
+
+
+func _setup_navigation() -> void:
+    _astar.region = Rect2i(0, 0, GRID_WIDTH, GRID_HEIGHT)
+    _astar.cell_size = Vector2.ONE
+    _astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_AT_LEAST_ONE_WALKABLE
+    _astar.update()
+    for cell in [Vector2i(2, 5), Vector2i(5, 9), Vector2i(3, 12)]:
+        _astar.set_point_solid(cell, true)
+
+func world_to_grid(world_position: Vector2) -> Vector2i:
+    var offset := world_position - GRID_ORIGIN
+    var axis_a := offset.x / (TILE_HEIGHT * 0.5)
+    var axis_b := offset.y / (TILE_WIDTH * 0.5)
+    var gx := int(floor((axis_a + axis_b) * 0.5))
+    var gy := int(floor((axis_b - axis_a) * 0.5))
+    return Vector2i(clampi(gx, 0, GRID_WIDTH - 1), clampi(gy, 0, GRID_HEIGHT - 1))
+
+func grid_to_world(cell: Vector2i) -> Vector2:
+    return _iso_point(float(cell.x) + 0.5, float(cell.y) + 0.5)
+
+func find_world_path(from_position: Vector2, to_position: Vector2) -> PackedVector2Array:
+    var start := world_to_grid(from_position)
+    var finish := world_to_grid(to_position)
+    if _astar.is_point_solid(finish):
+        finish = _nearest_walkable_cell(finish)
+    if _astar.is_point_solid(start) or _astar.is_point_solid(finish):
+        return PackedVector2Array([to_position])
+    var ids := _astar.get_id_path(start, finish)
+    var result := PackedVector2Array()
+    for id in ids:
+        result.append(grid_to_world(id))
+    if result.is_empty():
+        result.append(to_position)
+    else:
+        result[result.size() - 1] = to_position
+    return result
+
+func _nearest_walkable_cell(origin: Vector2i) -> Vector2i:
+    for radius in range(1, 4):
+        for y in range(maxi(0, origin.y - radius), mini(GRID_HEIGHT, origin.y + radius + 1)):
+            for x in range(maxi(0, origin.x - radius), mini(GRID_WIDTH, origin.x + radius + 1)):
+                var candidate := Vector2i(x, y)
+                if not _astar.is_point_solid(candidate):
+                    return candidate
+    return origin

@@ -25,6 +25,9 @@ var _experience_required: int = 100
 var _spawn_position: Vector2
 var _is_dead: bool = false
 var _auto_target: Node2D
+var _path_points := PackedVector2Array()
+var _path_index: int = 0
+var _path_recalc_timer: float = 0.0
 
 var max_health: float:
     get:
@@ -63,10 +66,18 @@ func _physics_process(delta: float) -> void:
         _auto_target = null
         direction = Vector2((input_vector.x - input_vector.y) * 0.5, input_vector.x + input_vector.y)
     elif is_instance_valid(_auto_target):
-        if global_position.distance_to(_auto_target.global_position) > 54.0:
+        _path_recalc_timer -= _delta
+        if _path_recalc_timer <= 0.0:
+            _rebuild_auto_path()
+        while _path_index < _path_points.size() and global_position.distance_to(_path_points[_path_index]) < 18.0:
+            _path_index += 1
+        if _path_index < _path_points.size():
+            direction = global_position.direction_to(_path_points[_path_index])
+        elif global_position.distance_to(_auto_target.global_position) > 58.0:
             direction = global_position.direction_to(_auto_target.global_position)
         else:
             _auto_target = null
+            _path_points.clear()
     if direction.length_squared() > 1.0:
         direction = direction.normalized()
     velocity = direction * move_speed
@@ -74,10 +85,22 @@ func _physics_process(delta: float) -> void:
 
 func set_auto_move_target(target: Node2D) -> void:
     if not _is_dead:
-        _auto_target = target
+        if _auto_target != target:
+            _auto_target = target
+            _rebuild_auto_path()
 
 func clear_auto_move_target() -> void:
     _auto_target = null
+    _path_points.clear()
+    _path_index = 0
+
+func _rebuild_auto_path() -> void:
+    _path_recalc_timer = 0.45
+    _path_points.clear()
+    _path_index = 0
+    var navigation := get_tree().get_first_node_in_group("world_navigation")
+    if is_instance_valid(navigation) and is_instance_valid(_auto_target) and navigation.has_method("find_world_path"):
+        _path_points = navigation.call("find_world_path", global_position, _auto_target.global_position)
 
 func take_damage(amount: float) -> void:
     if _is_dead or amount <= 0.0:
