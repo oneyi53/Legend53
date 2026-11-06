@@ -3,6 +3,7 @@ extends Node
 signal mode_changed(is_auto: bool)
 signal target_changed(target: Node2D)
 signal loot_message(text: String)
+signal enemy_defeated(enemy: Node2D)
 
 const EXP_LOOT_SCRIPT = preload("res://scripts/combat/experience_drop.gd")
 const GEAR_LOOT_SCRIPT = preload("res://scripts/combat/equipment_drop.gd")
@@ -60,12 +61,19 @@ func _bind_existing_enemies() -> void:
             _bound_enemies.append(enemy)
 
 func _on_enemy_defeated(enemy: Node2D) -> void:
+    enemy_defeated.emit(enemy)
     var player := get_tree().get_first_node_in_group("player")
     if is_instance_valid(player) and player.has_method("add_experience"):
         player.add_experience(20)
     if randf() <= experience_drop_chance:
         _spawn_experience_drop(enemy.global_position)
-    if randf() <= equipment_drop_chance:
+    if enemy.is_boss:
+        if is_instance_valid(player):
+            player.add_experience(250)
+            player.add_inventory_item({"name":"古树守护者之刃","slot":"weapon","attack":12,"health":0})
+            player.add_inventory_item({"name":"远古树皮甲","slot":"armor","attack":0,"health":65})
+        loot_message.emit("腐化古树已击败！获得首领奖励")
+    elif randf() <= equipment_drop_chance:
         _spawn_equipment_drop(enemy.global_position)
     if current_target == enemy:
         current_target = null
