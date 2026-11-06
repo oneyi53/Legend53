@@ -1,19 +1,22 @@
-; HERO WORLD - Godot project baseline
-; Exact Godot 4.x patch version will be pinned after local editor verification.
+; HERO WORLD - portrait-first mobile project baseline
+; Target editor/runtime: Godot 4.7.2 stable.
 
 config_version=5
 
 [application]
 config/name="HERO WORLD"
-config/description="An original offline isometric squad RPG."
+config/description="An original offline portrait isometric squad RPG."
 run/main_scene="res://scenes/boot/main.tscn"
 
 [display]
-window/size/viewport_width=1280
-window/size/viewport_height=720
-window/size/window_width_override=1280
-window/size/window_height_override=720
+window/size/viewport_width=720
+window/size/viewport_height=1280
+window/size/window_width_override=720
+window/size/window_height_override=1280
+window/size/resizable=false
+window/handheld/orientation=1
 window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
 
 [input]
 move_left={

@@ -1,13 +1,12 @@
 extends Node2D
 
-## A lightweight, code-drawn isometric test field.
-## Geometry is generated at runtime so the prototype needs no external art assets.
+## Portrait-oriented, code-drawn isometric field. No external art assets required.
 
-const GRID_WIDTH: int = 14
-const GRID_HEIGHT: int = 10
+const GRID_WIDTH: int = 8
+const GRID_HEIGHT: int = 16
 const TILE_WIDTH: float = 96.0
 const TILE_HEIGHT: float = 48.0
-const GRID_ORIGIN := Vector2(544.0, 40.0)
+const GRID_ORIGIN := Vector2(456.0, 64.0)
 
 const FLOOR_A := Color("#344b42")
 const FLOOR_B := Color("#3a5248")
@@ -16,27 +15,29 @@ const EDGE_COLOR := Color("#9aab83")
 
 func _ready() -> void:
     _create_boundary()
-    _create_obstacle(Vector2(430.0, 270.0), 28.0)
-    _create_obstacle(Vector2(820.0, 390.0), 34.0)
-    _create_obstacle(Vector2(650.0, 500.0), 24.0)
+    _create_obstacle(_iso_point(2.5, 5.5), 25.0)
+    _create_obstacle(_iso_point(5.5, 9.5), 31.0)
+    _create_obstacle(_iso_point(3.5, 12.5), 22.0)
     queue_redraw()
 
 func _iso_point(grid_x: float, grid_y: float) -> Vector2:
+    # Rotated 90 degrees from the usual wide isometric projection.
     return GRID_ORIGIN + Vector2(
-        (grid_x - grid_y) * TILE_WIDTH * 0.5,
-        (grid_x + grid_y) * TILE_HEIGHT * 0.5
+        (grid_x - grid_y) * TILE_HEIGHT * 0.5,
+        (grid_x + grid_y) * TILE_WIDTH * 0.5
     )
 
 func _draw() -> void:
     for y in range(GRID_HEIGHT):
         for x in range(GRID_WIDTH):
             var center := _iso_point(float(x) + 0.5, float(y) + 0.5)
-            var half := Vector2(TILE_WIDTH * 0.5, TILE_HEIGHT * 0.5)
+            var half_width := TILE_HEIGHT * 0.5
+            var half_height := TILE_WIDTH * 0.5
             var diamond := PackedVector2Array([
-                center + Vector2(0.0, -half.y),
-                center + Vector2(half.x, 0.0),
-                center + Vector2(0.0, half.y),
-                center + Vector2(-half.x, 0.0)
+                center + Vector2(0.0, -half_height),
+                center + Vector2(half_width, 0.0),
+                center + Vector2(0.0, half_height),
+                center + Vector2(-half_width, 0.0)
             ])
             var tile_color := FLOOR_A if (x + y) % 2 == 0 else FLOOR_B
             draw_colored_polygon(diamond, tile_color)
@@ -56,10 +57,9 @@ func _draw() -> void:
     ])
     draw_polyline(corners, EDGE_COLOR, 4.0, true)
 
-    # Simple stylized stones matching the circular collision areas.
-    _draw_stone(Vector2(430.0, 270.0), 28.0)
-    _draw_stone(Vector2(820.0, 390.0), 34.0)
-    _draw_stone(Vector2(650.0, 500.0), 24.0)
+    _draw_stone(_iso_point(2.5, 5.5), 25.0)
+    _draw_stone(_iso_point(5.5, 9.5), 31.0)
+    _draw_stone(_iso_point(3.5, 12.5), 22.0)
 
 func _draw_stone(center: Vector2, radius: float) -> void:
     draw_circle(center + Vector2(0.0, 7.0), radius + 3.0, Color("#26362f"))
