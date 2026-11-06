@@ -67,6 +67,10 @@ func _on_enemy_defeated(enemy: Node2D) -> void:
         player.add_experience(20)
     if randf() <= experience_drop_chance:
         _spawn_experience_drop(enemy.global_position)
+    if is_instance_valid(player) and player.has_method("add_gold"):
+        var gold_reward := 150 if enemy.is_boss else randi_range(5, 12)
+        player.add_gold(gold_reward)
+        loot_message.emit("获得金币 +%d" % gold_reward)
     if enemy.is_boss:
         if is_instance_valid(player):
             player.add_experience(250)

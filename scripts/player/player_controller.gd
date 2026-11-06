@@ -8,6 +8,7 @@ signal equipment_changed
 signal died
 signal respawned
 signal save_status(message: String)
+signal gold_changed(amount: int)
 const SAVE_PATH := "user://hero_world_save.json"
 var _autosave_timer: float = 0.0
 const AUTOSAVE_INTERVAL: float = 8.0
@@ -21,6 +22,7 @@ var level: int = 1
 var experience: int = 0
 var gold: int = 100
 var potions: int = 0
+var discovered_regions: Array[String] = ["village"]
 var inventory: Array[Dictionary] = []
 var equipment: Dictionary = {"weapon": {}, "armor": {}}
 var _experience_required: int = 100
@@ -132,7 +134,39 @@ func add_gold(amount: int) -> void:
     if amount <= 0:
         return
     gold += amount
+    gold_changed.emit(gold)
     save_game()
+
+func unlock_region(region_id: String) -> bool:
+    if region_id.is_empty() or discovered_regions.has(region_id):
+        return false
+    discovered_regions.append(region_id)
+    save_game()
+    return true
+
+func is_region_unlocked(region_id: String) -> bool:
+    return discovered_regions.has(region_id)
+
+func upgrade_equipment(slot: String) -> bool:
+    if (slot != "weapon" and slot != "armor") or gold < 50:
+        return false
+    var item: Dictionary = equipment.get(slot, {}).duplicate(true)
+    if item.is_empty() or int(item.get("upgrade_level", 0)) >= 5:
+        return false
+    gold -= 50
+    var upgrade_level := int(item.get("upgrade_level", 0)) + 1
+    item["upgrade_level"] = upgrade_level
+    if slot == "weapon":
+        item["attack"] = int(item.get("attack", 0)) + 2
+    else:
+        item["health"] = int(item.get("health", 0)) + 12
+    equipment[slot] = item
+    health = minf(health, max_health)
+    gold_changed.emit(gold)
+    equipment_changed.emit()
+    health_changed.emit(health, max_health)
+    save_game()
+    return true
 
 func buy_health_potion() -> bool:
     if gold < 30:
@@ -248,6 +282,7 @@ func save_game() -> void:
         "health": health,
         "gold": gold,
         "potions": potions,
+        "discovered_regions": discovered_regions,
         "position_x": global_position.x,
         "position_y": global_position.y,
         "inventory": inventory_data,
@@ -298,6 +333,15 @@ func _load_game() -> void:
     health = clampf(health, 0.0, max_health)
     gold = maxi(0, int(parsed.get("gold", 100)))
     potions = maxi(0, int(parsed.get("potions", 0)))
+    discovered_regions.clear()
+    discovered_regions.append("village")
+    var saved_regions: Variant = parsed.get("discovered_regions", ["village"])
+    if saved_regions is Array:
+        for region_id in saved_regions:
+            var region_key := str(region_id)
+            if region_key in ["village", "entrance", "deepwood", "ruins", "clearing"] and not discovered_regions.has(region_key):
+                discovered_regions.append(region_key)
+    gold_changed.emit(gold)
 
 func _exit_tree() -> void:
     if is_inside_tree():

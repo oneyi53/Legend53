@@ -29,7 +29,7 @@ var _dialogue_secondary: Button
 var _currency_text: Label
 var _potion_button: Button
 var _teleport_index := 0
-const TELEPORTS := [{"name":"守林新手村","position":Vector2(360,320)},{"name":"林间入口","position":Vector2(360,450)},{"name":"幽暗密林","position":Vector2(360,620)},{"name":"古代遗迹","position":Vector2(360,800)},{"name":"遗忘祭坛","position":Vector2(456,1000)}]
+const TELEPORTS := [{"id":"village","name":"守林新手村","position":Vector2(360,320)},{"id":"entrance","name":"林间入口","position":Vector2(360,450)},{"id":"deepwood","name":"幽暗密林","position":Vector2(360,620)},{"id":"ruins","name":"古代遗迹","position":Vector2(360,800)},{"id":"clearing","name":"遗忘祭坛","position":Vector2(456,1000)}]
 
 func _ready() -> void:
     _player = get_tree().get_first_node_in_group("player")
@@ -49,6 +49,7 @@ func _ready() -> void:
         _player.connect("died", Callable(self, "_on_player_died"))
         _player.connect("respawned", Callable(self, "_on_player_respawned"))
         _player.connect("save_status", Callable(self, "_on_save_status"))
+        _player.connect("gold_changed", Callable(self, "_on_gold_changed"))
         _on_health_changed(float(_player.get("health")), float(_player.get("max_health")))
         _on_experience_changed(int(_player.get("experience")), int(_player.get("_experience_required")), int(_player.get("level")))
         _refresh_inventory()
@@ -222,14 +223,17 @@ func _open_npc_dialogue() -> void:
     _dialogue_title.text = str(_nearby_npc.get("display_name"))
     match service:
         "blacksmith":
-            _dialogue_text.text = "装备整理服务：可将背包中属性更好的武器、护甲直接替换上身。"
-            _dialogue_action.text = "一键装备更强武器与护甲"
+            _dialogue_text.text = "装备整理与强化：每次强化消耗 50 金币。武器 +2 攻击，护甲 +12 生命；每件装备最多强化 5 次。"
+            _dialogue_action.text = "装备背包中更好的武器与护甲"
+            _dialogue_secondary.visible = true
+            _dialogue_secondary.text = "强化当前武器与护甲（各50金币）"
         "merchant":
             _dialogue_text.text = "生命药剂售价 30 金币，使用后恢复 60 点生命。当前金币：%d，药剂：%d。" % [int(_player.get("gold")), int(_player.get("potions"))]
             _dialogue_action.text = "购买生命药剂 · 30金币"
         "guide":
-            _dialogue_text.text = "选择旅途节点。传送免费；深入区域存在更强敌人。"
+            _dialogue_text.text = "只有亲自探索抵达过的区域才会开放传送。传送免费；深入区域存在更强敌人。"
             _dialogue_secondary.visible = true
+            _teleport_index = _first_unlocked_teleport_index()
             _dialogue_text.text += "\n当前目的地：" + str(TELEPORTS[_teleport_index].name)
             _dialogue_action.text = "传送至此处"
 
@@ -247,7 +251,7 @@ func _on_dialogue_action() -> void:
         "blacksmith":
             var weapon_ok: bool = _player.call("equip_best", "weapon")
             var armor_ok: bool = _player.call("equip_best", "armor")
-            _notice_text.text = "装备整理完成" if weapon_ok or armor_ok else "背包中暂无可升级装备"
+            _notice_text.text = "装备整理完成" if weapon_ok or armor_ok else "背包中暂无可替换装备"
             _refresh_inventory()
         "merchant":
             if _player.call("buy_health_potion"):
@@ -256,6 +260,9 @@ func _on_dialogue_action() -> void:
                 _notice_text.text = "金币不足：生命药剂需要 30 金币"
         "guide":
             var destination: Dictionary = TELEPORTS[_teleport_index]
+            if not _player.call("is_region_unlocked", str(destination.id)):
+                _notice_text.text = "该区域尚未探索，暂不可传送"
+                return
             _player.call("teleport_to", destination.position)
             _notice_text.text = "已传送至：" + str(destination.name)
             _dialogue_panel.visible = false
@@ -265,8 +272,37 @@ func _on_dialogue_action() -> void:
         _open_npc_dialogue()
 
 func _cycle_teleport() -> void:
-    _teleport_index = (_teleport_index + 1) % TELEPORTS.size()
-    _dialogue_text.text = "选择目的地：%s\n传送免费。深处存在高等级敌人。" % str(TELEPORTS[_teleport_index].name)
+    if is_instance_valid(_nearby_npc) and str(_nearby_npc.get("service_type")) == "blacksmith":
+        var weapon_ok: bool = _player.call("upgrade_equipment", "weapon")
+        var armor_ok: bool = _player.call("upgrade_equipment", "armor")
+        _notice_text.text = "装备强化完成" if weapon_ok or armor_ok else "强化失败：需装备武器/护甲且每件消耗50金币（最多5级）"
+        _open_npc_dialogue()
+        _refresh_inventory()
+        return
+    var unlocked := _get_unlocked_teleports()
+    if unlocked.size() <= 1:
+        _dialogue_text.text = "目前仅开放新手村。亲自探索进入新区域后，向导会开放对应传送点。"
+        return
+    var current_position := unlocked.find(_teleport_index)
+    var next_position := (current_position + 1) % unlocked.size()
+    _teleport_index = unlocked[next_position]
+    _dialogue_text.text = "选择目的地：%s\n已探索区域免费传送。" % str(TELEPORTS[_teleport_index].name)
+
+func _get_unlocked_teleports() -> Array[int]:
+    var result: Array[int] = []
+    for index in range(TELEPORTS.size()):
+        if _player.call("is_region_unlocked", str(TELEPORTS[index].id)):
+            result.append(index)
+    return result
+
+func _first_unlocked_teleport_index() -> int:
+    var unlocked := _get_unlocked_teleports()
+    return unlocked[0] if not unlocked.is_empty() else 0
+
+func _on_gold_changed(_amount: int) -> void:
+    if is_instance_valid(_currency_text):
+        _currency_text.text = "金币 %d  ·  药剂 %d" % [int(_player.get("gold")), int(_player.get("potions"))]
+    _refresh_inventory()
 
 func _use_potion() -> void:
     if _player.call("use_health_potion"):

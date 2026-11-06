@@ -54,6 +54,8 @@ func _update_player_region() -> void:
     if str(region.id) == _current_region_id:
         return
     _current_region_id = str(region.id)
+    if player.has_method("unlock_region"):
+        player.call("unlock_region", _current_region_id)
     region_changed.emit(str(region.name), int(region.level))
 
 func _iso_point(grid_x: float, grid_y: float) -> Vector2:
