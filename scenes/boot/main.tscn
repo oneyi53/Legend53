@@ -1,13 +1,18 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/player/player_controller.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/world/isometric_world.gd" id="2_world"]
 [ext_resource type="Script" path="res://scripts/ui/touch_controls.gd" id="3_touch"]
+[ext_resource type="Script" path="res://scripts/combat/combat_director.gd" id="4_combat"]
+[ext_resource type="PackedScene" path="res://scenes/actors/enemy.tscn" id="5_enemy"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_player"]
 size = Vector2(24, 24)
 
 [node name="Main" type="Node2D"]
+
+[node name="CombatDirector" type="Node" parent="."]
+script = ExtResource("4_combat")
 
 [node name="World" type="Node2D" parent="."]
 script = ExtResource("2_world")
@@ -32,6 +37,17 @@ limit_right = 720
 limit_bottom = 1280
 limit_smoothed = true
 
+[node name="Enemies" type="Node2D" parent="."]
+
+[node name="ForestRaiderA" parent="Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(300, 510)
+
+[node name="ForestRaiderB" parent="Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(450, 450)
+
+[node name="ForestRaiderC" parent="Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(530, 770)
+
 [node name="HUD" type="CanvasLayer" parent="."]
 
 [node name="Status" type="Label" parent="HUD"]
@@ -50,7 +66,7 @@ offset_right = 696.0
 offset_bottom = 92.0
 theme_override_colors/font_color = Color(0.72, 0.82, 0.74, 1)
 theme_override_font_sizes/font_size = 15
-text = "THE FORGOTTEN GROVE"
+text = "THE FORGOTTEN GROVE  |  P2 COMBAT TEST"
 
 [node name="TouchControls" type="Control" parent="HUD"]
 layout_mode = 3
