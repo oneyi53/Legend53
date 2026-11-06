@@ -13,6 +13,7 @@ var _inventory_panel: PanelContainer
 var _inventory_text: Label
 var _weapon_button: Button
 var _armor_button: Button
+var _save_text: Label
 
 func _ready() -> void:
     _player = get_tree().get_first_node_in_group("player")
@@ -26,6 +27,7 @@ func _ready() -> void:
         _player.connect("equipment_changed", Callable(self, "_refresh_inventory"))
         _player.connect("died", Callable(self, "_on_player_died"))
         _player.connect("respawned", Callable(self, "_on_player_respawned"))
+        _player.connect("save_status", Callable(self, "_on_save_status"))
         _on_health_changed(float(_player.get("health")), float(_player.get("max_health")))
         _on_experience_changed(int(_player.get("experience")), int(_player.get("_experience_required")), int(_player.get("level")))
         _refresh_inventory()
@@ -56,6 +58,14 @@ func _build_hud() -> void:
     _target_text = _make_label(root, Vector2(24, 205), Vector2(300, 22), 13, Color("#e4b69a"))
     _target_text.text = "目标：未锁定"
     _notice_text = _make_label(root, Vector2(24, 232), Vector2(420, 22), 13, Color("#8fe6b1"))
+    _save_text = _make_label(root, Vector2(24, 708), Vector2(300, 20), 12, Color("#b7c7b9"))
+    var save_button := Button.new()
+    save_button.text = "立即存档"
+    save_button.position = Vector2(570, 24)
+    save_button.size = Vector2(126, 38)
+    save_button.mouse_filter = Control.MOUSE_FILTER_STOP
+    save_button.pressed.connect(_save_now)
+    root.add_child(save_button)
 
     var open_button := Button.new()
     open_button.text = "背包 / 装备"
@@ -171,3 +181,12 @@ func _on_player_died() -> void:
 func _on_player_respawned() -> void:
     _on_health_changed(float(_player.get("health")), float(_player.get("max_health")))
     _notice_text.text = "已返回战场"
+
+
+func _save_now() -> void:
+    if is_instance_valid(_player):
+        _player.call("save_game")
+
+func _on_save_status(message: String) -> void:
+    if is_instance_valid(_save_text):
+        _save_text.text = "存档：" + message

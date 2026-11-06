@@ -7,6 +7,10 @@ signal inventory_changed
 signal equipment_changed
 signal died
 signal respawned
+signal save_status(message: String)
+const SAVE_PATH := "user://hero_world_save.json"
+var _autosave_timer: float = 0.0
+const AUTOSAVE_INTERVAL: float = 8.0
 
 @export var move_speed: float = 220.0
 @export var base_max_health: float = 120.0
@@ -33,13 +37,23 @@ var attack_power: float:
         return 18.0 + float(weapon.get("attack", 0)) + (level - 1) * 2.0
 
 func _ready() -> void:
-    health = max_health
     _spawn_position = global_position
+    _load_game()
+    health = clampf(health, 0.0, max_health)
+    if health <= 0.0:
+        health = max_health
     add_to_group("player")
     health_changed.emit(health, max_health)
     experience_changed.emit(experience, _experience_required, level)
+    inventory_changed.emit()
+    equipment_changed.emit()
+    save_status.emit("本地存档已读取" if FileAccess.file_exists(SAVE_PATH) else "新旅程已开始")
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
+    _autosave_timer += delta
+    if _autosave_timer >= AUTOSAVE_INTERVAL:
+        _autosave_timer = 0.0
+        save_game()
     if _is_dead:
         velocity = Vector2.ZERO
         return
@@ -72,6 +86,8 @@ func take_damage(amount: float) -> void:
     health_changed.emit(health, max_health)
     if health <= 0.0:
         _begin_respawn()
+    else:
+        save_game()
 
 func add_experience(amount: int) -> void:
     if amount <= 0 or _is_dead:
@@ -85,12 +101,14 @@ func add_experience(amount: int) -> void:
         level_up.emit(level)
     health_changed.emit(health, max_health)
     experience_changed.emit(experience, _experience_required, level)
+    save_game()
 
 func add_inventory_item(item: Dictionary) -> void:
     if item.is_empty():
         return
     inventory.append(item.duplicate(true))
     inventory_changed.emit()
+    save_game()
 
 func equip_best(slot: String) -> bool:
     if slot != "weapon" and slot != "armor":
@@ -119,6 +137,7 @@ func equip_best(slot: String) -> bool:
     health_changed.emit(health, max_health)
     equipment_changed.emit()
     inventory_changed.emit()
+    save_game()
     return true
 
 func get_equipment_summary() -> String:
@@ -158,3 +177,68 @@ func _finish_respawn() -> void:
         collision.set_deferred("disabled", false)
     health_changed.emit(health, max_health)
     respawned.emit()
+    save_game()
+
+
+func save_game() -> void:
+    var inventory_data: Array = []
+    for item in inventory:
+        inventory_data.append(item.duplicate(true))
+    var data := {
+        "version": 1,
+        "level": level,
+        "experience": experience,
+        "experience_required": _experience_required,
+        "health": health,
+        "position_x": global_position.x,
+        "position_y": global_position.y,
+        "inventory": inventory_data,
+        "equipment": equipment.duplicate(true)
+    }
+    var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+    if file == null:
+        save_status.emit("存档失败：无法写入本地文件")
+        return
+    file.store_string(JSON.stringify(data))
+    file.close()
+    save_status.emit("已保存")
+
+func _load_game() -> void:
+    if not FileAccess.file_exists(SAVE_PATH):
+        health = max_health
+        return
+    var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
+    if file == null:
+        health = max_health
+        save_status.emit("存档读取失败，使用新角色")
+        return
+    var parsed: Variant = JSON.parse_string(file.get_as_text())
+    file.close()
+    if not parsed is Dictionary or int(parsed.get("version", 0)) != 1:
+        health = max_health
+        save_status.emit("存档格式不兼容，使用新角色")
+        return
+    level = maxi(1, int(parsed.get("level", 1)))
+    _experience_required = maxi(100, int(parsed.get("experience_required", 100 + (level - 1) * 45)))
+    experience = clampi(int(parsed.get("experience", 0)), 0, _experience_required - 1)
+    var saved_equipment: Variant = parsed.get("equipment", {})
+    if saved_equipment is Dictionary:
+        equipment = {
+            "weapon": saved_equipment.get("weapon", {}),
+            "armor": saved_equipment.get("armor", {})
+        }
+    inventory.clear()
+    var saved_inventory: Variant = parsed.get("inventory", [])
+    if saved_inventory is Array:
+        for item in saved_inventory:
+            if item is Dictionary:
+                inventory.append(item.duplicate(true))
+    var saved_x := float(parsed.get("position_x", global_position.x))
+    var saved_y := float(parsed.get("position_y", global_position.y))
+    global_position = Vector2(saved_x, saved_y)
+    health = float(parsed.get("health", max_health))
+    health = clampf(health, 0.0, max_health)
+
+func _exit_tree() -> void:
+    if is_inside_tree():
+        save_game()
