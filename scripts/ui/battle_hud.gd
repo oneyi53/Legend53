@@ -14,14 +14,14 @@ func _ready() -> void:
     _combat = get_tree().get_first_node_in_group("combat_director")
     _build_hud()
     if is_instance_valid(_player):
-        _player.health_changed.connect(_on_health_changed)
-        _player.died.connect(_on_player_died)
-        _player.respawned.connect(_on_player_respawned)
-        _on_health_changed(_player.health, _player.max_health)
+        _player.connect("health_changed", Callable(self, "_on_health_changed"))
+        _player.connect("died", Callable(self, "_on_player_died"))
+        _player.connect("respawned", Callable(self, "_on_player_respawned"))
+        _on_health_changed(float(_player.get("health")), float(_player.get("max_health")))
     if is_instance_valid(_combat):
-        _combat.mode_changed.connect(_on_mode_changed)
+        _combat.connect("mode_changed", Callable(self, "_on_mode_changed"))
         _combat.target_changed.connect(_on_target_changed)
-        _on_mode_changed(_combat.auto_combat_enabled)
+        _on_mode_changed(bool(_combat.get("auto_combat_enabled")))
 
 func _build_hud() -> void:
     var root := Control.new()
@@ -78,4 +78,4 @@ func _on_player_died() -> void:
     _health_text.text = "生命耗尽 · 2秒后重返战场"
 
 func _on_player_respawned() -> void:
-    _on_health_changed(_player.health, _player.max_health)
+    _on_health_changed(float(_player.get("health")), float(_player.get("max_health")))
