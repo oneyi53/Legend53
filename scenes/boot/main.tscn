@@ -1,33 +1,41 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/player/player_controller.gd" id="1_player"]
+[ext_resource type="Script" path="res://scripts/world/isometric_world.gd" id="2_world"]
+
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_player"]
 size = Vector2(24, 24)
 
 [node name="Main" type="Node2D"]
 
 [node name="World" type="Node2D" parent="."]
+script = ExtResource("2_world")
 
-[node name="Player" type="CharacterBody2D" parent="World"]
-position = Vector2(640, 360)
+[node name="Player" type="CharacterBody2D" parent="."]
+position = Vector2(640, 340)
 script = ExtResource("1_player")
 
-[node name="BodyVisual" type="Polygon2D" parent="World/Player"]
+[node name="BodyVisual" type="Polygon2D" parent="Player"]
 polygon = PackedVector2Array(-12, -18, 12, -18, 12, 12, -12, 12)
 color = Color(0.25, 0.72, 0.95, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/Player"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player"]
 shape = SubResource("RectangleShape2D_player")
 
-[node name="Camera2D" type="Camera2D" parent="World/Player"]
+[node name="Camera2D" type="Camera2D" parent="Player"]
 position_smoothing_enabled = true
 position_smoothing_speed = 5.0
+limit_left = 40
+limit_top = 20
+limit_right = 1240
+limit_bottom = 640
+limit_smoothed = true
 
 [node name="HUD" type="CanvasLayer" parent="."]
 
 [node name="Status" type="Label" parent="HUD"]
 offset_left = 24.0
 offset_top = 20.0
-offset_right = 1000.0
+offset_right = 1100.0
 offset_bottom = 60.0
-text = "HERO WORLD | P0 Prototype | WASD / Arrow Keys"
+text = "HERO WORLD | P1 Isometric Field | WASD / Arrow Keys"
