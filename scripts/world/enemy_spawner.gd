@@ -36,6 +36,10 @@ func _process(delta: float) -> void:
  parent.add_child(enemy)
  enemy.global_position = spawn.position
  enemy.configure_for_zone(str(spawn.zone),int(spawn.level))
+ if randf() < 0.18:
+  var variants := ["swift", "guardian", "brute"]
+  enemy.configure_elite(variants[randi_range(0, variants.size() - 1)])
+  enemy.name = "Elite_" + enemy.name
 func _spawn_boss() -> void:
  var parent := get_parent().get_node_or_null("Enemies")
  if not is_instance_valid(parent): return

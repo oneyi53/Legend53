@@ -18,6 +18,9 @@ var _is_defeated := false
 var zone_name := "林间入口"
 var enemy_level := 1
 var is_boss := false
+var is_elite := false
+var elite_type := ""
+var elite_title := ""
 var boss_title := ""
 
 func _ready() -> void:
@@ -61,6 +64,30 @@ func configure_for_zone(zone_id: String, level_value: int) -> void:
     health = max_health
     queue_redraw()
 
+func configure_elite(variant: String) -> void:
+    if is_boss:
+        return
+    is_elite = true
+    elite_type = variant
+    match variant:
+        "swift":
+            elite_title = "迅捷"
+            move_speed *= 1.38
+            attack_interval *= 0.78
+        "guardian":
+            elite_title = "坚甲"
+            max_health *= 2.25
+            health = max_health
+            attack_damage *= 0.82
+        _:
+            elite_type = "brute"
+            elite_title = "狂暴"
+            max_health *= 1.45
+            health = max_health
+            attack_damage *= 1.65
+            move_speed *= 0.92
+    queue_redraw()
+
 func configure_boss() -> void:
     is_boss = true
     boss_title = "腐化古树"
@@ -90,8 +117,14 @@ func take_damage(amount: float) -> void:
         queue_free()
 
 func _draw() -> void:
+    if is_elite:
+        var elite_color := Color("#75d9e8") if elite_type == "swift" else (Color("#d5c7a0") if elite_type == "guardian" else Color("#e78a58"))
+        draw_arc(Vector2(0, 0), 23.0, 0.0, TAU, 32, elite_color, 2.5, true)
+        draw_circle(Vector2(0, -23), 4.0, elite_color)
     draw_circle(Vector2(0, 8), 25.0 if is_boss else 17.0, Color("#26362f"))
     var body_color := Color("#7d493d") if is_boss else (Color("#b65b43") if enemy_level < 5 else Color("#8c5b9e"))
+    if is_elite:
+        body_color = Color("#3d9eaa") if elite_type == "swift" else (Color("#9c8960") if elite_type == "guardian" else Color("#b34d37"))
     if enemy_level >= 8 and not is_boss:
         body_color = Color("#b77a36")
     draw_colored_polygon(PackedVector2Array([Vector2(0,-17),Vector2(15,-2),Vector2(11,15),Vector2(-11,15),Vector2(-15,-2)]), body_color)
@@ -101,3 +134,5 @@ func _draw() -> void:
     draw_rect(Rect2(-bar_width * 0.5, bar_y, bar_width * clampf(health / maxf(max_health, 1), 0, 1), 5), Color("#d85b4d"))
     if is_boss and ThemeDB.fallback_font:
         draw_string(ThemeDB.fallback_font, Vector2(-42, -52), boss_title, HORIZONTAL_ALIGNMENT_CENTER, 84, 10, Color("#ffd59a"))
+    elif is_elite and ThemeDB.fallback_font:
+        draw_string(ThemeDB.fallback_font, Vector2(-35, -36), elite_title, HORIZONTAL_ALIGNMENT_CENTER, 70, 9, Color("#f5d99a"))

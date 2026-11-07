@@ -68,11 +68,11 @@ func _on_enemy_defeated(enemy: Node2D) -> void:
     enemy_defeated.emit(enemy)
     var player := get_tree().get_first_node_in_group("player")
     if is_instance_valid(player) and player.has_method("add_experience"):
-        player.add_experience(20)
-    if randf() <= experience_drop_chance:
+        player.add_experience(45 if enemy.is_elite else 20)
+    if enemy.is_elite or randf() <= experience_drop_chance:
         _spawn_experience_drop(enemy.global_position)
     if is_instance_valid(player) and player.has_method("add_gold"):
-        var gold_reward := 150 if enemy.is_boss else randi_range(5, 12)
+        var gold_reward := 150 if enemy.is_boss else (randi_range(20, 30) if enemy.is_elite else randi_range(5, 12))
         player.add_gold(gold_reward)
         loot_message.emit("获得金币 +%d" % gold_reward)
     if enemy.is_boss:
@@ -81,8 +81,10 @@ func _on_enemy_defeated(enemy: Node2D) -> void:
             player.add_inventory_item({"name":"古树守护者之刃","slot":"weapon","attack":12,"health":0})
             player.add_inventory_item({"name":"远古树皮甲","slot":"armor","attack":0,"health":65})
         loot_message.emit("腐化古树已击败！获得首领奖励")
-    elif randf() <= equipment_drop_chance:
+    elif enemy.is_elite or randf() <= equipment_drop_chance:
         _spawn_equipment_drop(enemy.global_position)
+    if enemy.is_elite:
+        loot_message.emit("精英怪击败！额外经验与金币已获得")
     if current_target == enemy:
         current_target = null
         target_changed.emit(null)

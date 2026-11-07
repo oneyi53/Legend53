@@ -407,7 +407,14 @@ func _on_mode_changed(is_auto: bool) -> void:
     _mode_text.text = "战斗模式：自动" if is_auto else "战斗模式：手动"
 
 func _on_target_changed(target: Node2D) -> void:
-    _target_text.text = "目标：森林劫掠者" if is_instance_valid(target) else "目标：未锁定"
+    if not is_instance_valid(target):
+        _target_text.text = "目标：未锁定"
+    elif bool(target.get("is_boss")):
+        _target_text.text = "目标：首领 · " + str(target.get("boss_title"))
+    elif bool(target.get("is_elite")):
+        _target_text.text = "目标：精英 · " + str(target.get("elite_title")) + "（Lv.%d）" % int(target.get("enemy_level"))
+    else:
+        _target_text.text = "目标：森林劫掠者（Lv.%d）" % int(target.get("enemy_level"))
 
 func _on_loot_message(message: String) -> void:
     _notice_text.text = message
