@@ -18,7 +18,7 @@ afterEach(()=>{delete globalThis.localStorage});
 test("version 1 saves migrate without losing character progress",()=>{
   values.set(KEY,JSON.stringify({version:1,classId:"mage",level:3,exp:25,gold:80,x:410,y:620}));
   const save=loadSave();
-  assert.equal(save.version,3);
+  assert.equal(save.version,4);
   assert.equal(save.classId,"mage");
   assert.equal(save.level,3);
   const game=new Game();
@@ -30,7 +30,7 @@ test("version 1 saves migrate without losing character progress",()=>{
 
 test("version 2 saves restore enemy health and uncollected drops",()=>{
   values.set(KEY,JSON.stringify({
-    version:3,classId:"warrior",level:3,exp:10,gold:50,potions:2,hp:90,x:450,y:700,
+    version:4,classId:"warrior",level:3,exp:10,gold:50,potions:2,hp:90,x:450,y:700,
     enemies:[{id:"forest_beast",name:"森林劫掠者",x:480,y:710,homeX:590,homeY:730,spawnId:"deepwood_beast_1",regionId:"deepwood",hp:7,hpMax:54,attack:7,defense:1,speed:48,xp:22,gold:[5,12],alive:true,attackTimer:.4,phase:1.2}],
     drops:[{x:460,y:705,type:"gold",amount:9,label:"金币 +9"}]
   }));
@@ -41,7 +41,7 @@ test("version 2 saves restore enemy health and uncollected drops",()=>{
   assert.equal(game.drops[0].amount,9);
   game.save();
   const saved=JSON.parse(values.get(KEY));
-  assert.equal(saved.version,3);
+  assert.equal(saved.version,4);
   assert.equal(saved.enemies.find(enemy=>enemy.spawnId==="deepwood_beast_1").hp,7);
   assert.equal(saved.drops[0].amount,9);
 });
@@ -49,7 +49,7 @@ test("version 2 saves restore enemy health and uncollected drops",()=>{
 test("version 2 saves migrate to version 3 without losing quest progress",()=>{
   values.set(KEY,JSON.stringify({version:2,classId:"warrior",level:2,exp:15,gold:42,questAccepted:true,questKills:2,questClaimed:false,x:450,y:500}));
   const save=loadSave();
-  assert.equal(save.version,3);
+  assert.equal(save.version,4);
   assert.equal(save.questAccepted,true);
   assert.equal(save.questKills,2);
   const game=new Game();
