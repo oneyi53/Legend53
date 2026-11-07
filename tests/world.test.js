@@ -156,3 +156,33 @@ test("quest progress is capped at its target and survives save reload",()=>{
   assert.equal(restored.questAccepted,true);
   assert.equal(restored.questKills,3);
 });
+
+test("blacksmith shop requires proximity and deducts gold for valid purchases",()=>{
+  const game=new Game();
+  assert.equal(game.buyShopItem("iron_sword"),false);
+  game.player.x=310;game.player.y=185;
+  assert.equal(game.interactNpc("village_smith"),true);
+  const before=game.gold;
+  assert.equal(game.buyShopItem("iron_sword"),true);
+  assert.equal(game.gold,before-120);
+  assert.ok(game.inventory.some(item=>item.id==="iron_sword"));
+});
+test("shop rejects insufficient funds and does not mutate inventory",()=>{
+  const game=new Game();
+  game.player.x=310;game.player.y=185;game.interactNpc("village_smith");
+  game.gold=10;
+  const count=game.inventory.length;
+  assert.equal(game.buyShopItem("leather_armor"),false);
+  assert.equal(game.gold,10);
+  assert.equal(game.inventory.length,count);
+});
+test("potion purchase increments potion stock and persists through save",()=>{
+  const game=new Game();
+  game.player.x=310;game.player.y=185;game.interactNpc("village_smith");
+  const before=game.potions;
+  assert.equal(game.buyShopItem("small_potion"),true);
+  assert.equal(game.potions,before+1);
+  game.save();
+  const restored=new Game();
+  assert.equal(restored.potions,before+1);
+});
