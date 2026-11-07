@@ -23,7 +23,9 @@ var experience: int = 0
 var gold: int = 100
 var potions: int = 0
 var materials: Dictionary = {"rune_fragment": 0, "heartwood_essence": 0, "ancient_rune": 0, "ancient_core": 0}
-var class_id: String = "warrior"\nvar skill_points: int = 0\nvar skill_levels: Dictionary = {"warrior": 1, "mage": 1, "taoist": 1}
+var class_id: String = "warrior"
+var skill_points: int = 0
+var skill_levels: Dictionary = {"warrior": 1, "mage": 1, "taoist": 1}
 var discovered_regions: Array[String] = ["village"]
 var inventory: Array[Dictionary] = []
 var collected_gear: Dictionary = {}
@@ -497,7 +499,9 @@ func save_game() -> void:
         "gold": gold,
         "potions": potions,
         "materials": materials.duplicate(true),
-        "class_id": class_id,\n        "skill_points": skill_points,\n        "skill_levels": skill_levels.duplicate(true),
+        "class_id": class_id,
+        "skill_points": skill_points,
+        "skill_levels": skill_levels.duplicate(true),
         "discovered_regions": discovered_regions,
         "position_x": global_position.x,
         "position_y": global_position.y,

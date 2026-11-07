@@ -32,7 +32,8 @@ var _dialogue_awaken_button: Button
 var _currency_text: Label
 var _potion_button: Button
 var _skill_button: Button
-var _class_button: Button\nvar _skill_upgrade_button: Button
+var _class_button: Button
+var _skill_upgrade_button: Button
 var _teleport_index := 0
 const TELEPORTS := [{"id":"village","name":"守林新手村","position":Vector2(360,320)},{"id":"entrance","name":"林间入口","position":Vector2(360,450)},{"id":"deepwood","name":"幽暗密林","position":Vector2(360,620)},{"id":"ruins","name":"古代遗迹","position":Vector2(360,800)},{"id":"clearing","name":"遗忘祭坛","position":Vector2(456,1000)}]
 
@@ -434,13 +435,16 @@ func _refresh_inventory() -> void:
     var materials: Dictionary = _player.get("materials")
     lines.append("金币：%d    生命药剂：%d" % [int(_player.get("gold")), int(_player.get("potions"))])
     lines.append("锻造材料：符文碎片 ×%d" % int(materials.get("rune_fragment", 0)))
-    lines.append(str(_player.call("get_awaken_material_summary")))\n    lines.append(str(_player.call("get_skill_progress_summary")))
+    lines.append(str(_player.call("get_awaken_material_summary")))
+    lines.append(str(_player.call("get_skill_progress_summary")))
     for slot in ["weapon", "armor", "necklace"]:
         var equipped_item: Dictionary = _player.get("equipment").get(slot, {})
         if not equipped_item.is_empty():
             lines.append("%s觉醒：+%d/3" % [str(equipped_item.get("name", slot)), int(equipped_item.get("awaken_level", 0))])
     _inventory_text.text = "\n".join(lines)
-    _class_button.text = "当前：%s · 点击切换职业" % str(_player.call("get_class_name"))\n    _skill_upgrade_button.text = "升级%s（技能%d/5，技能点%d）" % [str(_player.call("get_skill_name")), int(_player.call("get_skill_level")), int(_player.get("skill_points"))]\n    _skill_upgrade_button.disabled = int(_player.get("skill_points")) <= 0 or int(_player.call("get_skill_level")) >= 5
+    _class_button.text = "当前：%s · 点击切换职业" % str(_player.call("get_class_name"))
+    _skill_upgrade_button.text = "升级%s（技能%d/5，技能点%d）" % [str(_player.call("get_skill_name")), int(_player.call("get_skill_level")), int(_player.get("skill_points"))]
+    _skill_upgrade_button.disabled = int(_player.get("skill_points")) <= 0 or int(_player.call("get_skill_level")) >= 5
     _potion_button.disabled = int(_player.get("potions")) <= 0 or float(_player.get("health")) >= float(_player.get("max_health"))
     _currency_text.text = "金币 %d  ·  药剂 %d" % [int(_player.get("gold")), int(_player.get("potions"))]
     _weapon_button.disabled = not _has_upgrade("weapon")

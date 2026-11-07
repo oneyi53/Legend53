@@ -241,6 +241,7 @@ func cast_class_skill() -> bool:
     if not is_instance_valid(player) or bool(player.get("_is_dead")):
         return false
     var class_key := str(player.get("class_id"))
+    var skill_level := int(player.call("get_skill_level")) if player.has_method("get_skill_level") else 1
     var radius := 132.0
     var multiplier := 2.35
     var skill_name := "旋风斩"
@@ -252,7 +253,9 @@ func cast_class_skill() -> bool:
         radius = 178.0
         multiplier = 1.9
         skill_name = "灵符治疗"
-    multiplier += float(skill_level - 1) * 0.35\n    radius += float(skill_level - 1) * 8.0\n    var effect_kind := "slash"
+    multiplier += float(skill_level - 1) * 0.35
+    radius += float(skill_level - 1) * 8.0
+    var effect_kind := "slash"
     if class_key == "mage":
         effect_kind = "fire"
     elif class_key == "taoist":
