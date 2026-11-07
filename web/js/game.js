@@ -1,4 +1,4 @@
-import {CLASSES,REGIONS,ENEMIES,GEAR,NPCS,MAIN_QUEST,SHOP_ITEMS} from "./data.js";
+import {CLASSES,REGIONS,ENEMIES,GEAR,NPCS,MAIN_QUEST,DEEPWOOD_QUEST,SHOP_ITEMS} from "./data.js";
 import {loadSave,writeSave} from "./storage.js";
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const rand=(a,b)=>Math.floor(a+Math.random()*(b-a+1));
@@ -13,6 +13,7 @@ const SPAWN_POINTS=[
   {id:"altar_wolf_1",enemy:"thorn_wolf",x:520,y:1260,region:"altar"},
   {id:"entrance_wolf_1",enemy:"thorn_wolf",x:300,y:470,region:"entrance"},
   {id:"deepwood_wolf_2",enemy:"thorn_wolf",x:650,y:800,region:"deepwood"},
+  {id:"deepwood_chief_1",enemy:"woodland_chief",x:500,y:820,region:"deepwood"},
   {id:"ruins_guard_2",enemy:"ruin_guard",x:260,y:980,region:"ruins"},
   {id:"altar_beast_1",enemy:"forest_beast",x:650,y:1300,region:"altar"}
 ];
@@ -21,7 +22,7 @@ export class Game{
   constructor(){
     const saved=loadSave();this.classId=saved?.classId||"warrior";this.level=saved?.level||1;this.exp=saved?.exp||0;this.gold=saved?.gold??100;this.potions=saved?.potions??3;this.inventory=saved?.inventory||[];this.equipment=saved?.equipment||{};
     this.hp=saved?.hp??this.maxHp;this.player={x:saved?.x??450,y:saved?.y??330,attackTimer:0,skillTimer:0,flash:0};
-    this.kills=saved?.kills||0;this.questKills=saved?.questKills||0;this.skillPoints=saved?.skillPoints||0;this.questAccepted=saved?.questAccepted||false;this.questClaimed=saved?.questClaimed||false;this.skillLevel=saved?.skillLevel||1;this.region="village";this.auto=false;this.target=null;this.drops=[];this.effects=[];this.damageTexts=[];this.enemies=[];this.clock=0;this.autosaveTimer=0;this.notice="";this.noticeTime=0;this.activeNpcId=null;this.onChange=()=>{};
+    this.kills=saved?.kills||0;this.questKills=saved?.questKills||0;this.skillPoints=saved?.skillPoints||0;this.questAccepted=saved?.questAccepted||false;this.questClaimed=saved?.questClaimed||false;this.deepwoodQuestAccepted=saved?.deepwoodQuestAccepted||false;this.deepwoodQuestClaimed=saved?.deepwoodQuestClaimed||false;this.deepwoodEntered=saved?.deepwoodEntered||false;this.deepwoodEliteKills=saved?.deepwoodEliteKills||0;this.questMaterials=saved?.questMaterials||0;this.skillLevel=saved?.skillLevel||1;this.region="village";this.auto=false;this.target=null;this.drops=[];this.effects=[];this.damageTexts=[];this.enemies=[];this.clock=0;this.autosaveTimer=0;this.notice="";this.noticeTime=0;this.activeNpcId=null;this.onChange=()=>{};
     const restoredEnemies=Array.isArray(saved?.enemies)?saved.enemies.filter(e=>e&&typeof e.id==="string"&&Number.isFinite(e.x)&&Number.isFinite(e.y)&&Number.isFinite(e.hp)&&Number.isFinite(e.hpMax)):null;
     if(restoredEnemies)this.enemies=restoredEnemies.map(e=>({...e,regionId:e.regionId||REGIONS.find(r=>e.y>=r.minY&&e.y<r.maxY)?.id||"village",alive:e.alive!==false,active:false,attackTimer:Math.max(0,Number(e.attackTimer)||0),phase:Number(e.phase)||0}));
     this.drops=Array.isArray(saved?.drops)?saved.drops.filter(d=>d&&Number.isFinite(d.x)&&Number.isFinite(d.y)&&typeof d.type==="string"):[];
@@ -77,7 +78,7 @@ export class Game{
       if(dist<43&&e.attackTimer<=0){this.takeDamage(e.attack);e.attackTimer=e.boss?1.45:1.25}else e.attackTimer-=dt;
     }
     if(this.auto){if(!this.target||!this.target.alive||!this.target.active)this.target=this.nearest(this.klass.range+180);if(this.target){const dist=this.distance(this.player,this.target);if(dist>this.klass.range){const dx=(this.target.x-this.player.x)/dist,dy=(this.target.y-this.player.y)/dist;this.movePlayer(dx*150*dt,dy*150*dt)}else this.basicAttack()}}
-    this.drops=this.drops.filter(drop=>{if(this.distance(this.player,drop)<42){if(drop.type==="gold")this.gold+=drop.amount;else if(drop.type==="exp")this.gainExp(drop.amount);else this.inventory.push(drop.item);this.toast(drop.label);return false}return true});
+    this.drops=this.drops.filter(drop=>{if(this.distance(this.player,drop)<42){if(drop.type==="gold")this.gold+=drop.amount;else if(drop.type==="exp")this.gainExp(drop.amount);else if(drop.type==="quest_item"){this.questMaterials+=drop.amount||1;this.toast(drop.label)}else this.inventory.push(drop.item);this.toast(drop.label);return false}return true});
     this.effects=this.effects.filter(f=>{f.life-=dt;return f.life>0});this.damageTexts=this.damageTexts.filter(t=>{t.life-=dt;t.y-=24*dt;return t.life>0});
     if(this.noticeTime>0)this.noticeTime-=dt;
   }
@@ -88,13 +89,13 @@ export class Game{
   castSkill(){if(this.player.skillTimer>0){this.toast("技能冷却中");return}const c=this.klass;this.player.skillTimer=c.skillCooldown;this.effects.push({x:this.player.x,y:this.player.y,life:.55,max:.55,type:"skill"});if(this.classId==="taoist"){const healed=Math.min(this.maxHp-this.hp,Math.round(this.maxHp*.28));this.hp+=healed;this.toast("灵符治疗 +" + healed);return}
     const targets=this.enemies.filter(e=>e.alive&&e.active&&this.distance(this.player,e)<(this.classId==="warrior"?145:260));if(!targets.length){this.toast("技能已释放");return}for(const e of targets){const dmg=Math.round(this.attack*c.skillPower*(1+this.skillLevel*.12));e.hp-=dmg;this.damageTexts.push({x:e.x,y:e.y-35,text:String(dmg),life:.9});if(e.hp<=0)this.defeat(e)}this.toast(c.skill+" 命中 "+targets.length+" 个目标")}
   takeDamage(amount){const real=Math.max(1,Math.round(amount*this.defense)-this.stat("defense"));this.hp-=real;this.player.flash=.2;this.damageTexts.push({x:this.player.x,y:this.player.y-48,text:"-"+real,life:.7});if(this.hp<=0){this.hp=1;this.player.x=450;this.player.y=330;this.auto=false;this.toast("你已返回新手村，生命恢复");this.hp=this.maxHp}}
-  defeat(e){if(!e.alive)return;e.alive=false;e.respawnTimer=e.boss?90:e.elite?42:24;this.kills++;if(this.questAccepted&&!this.questClaimed&&e.id===MAIN_QUEST.targetEnemyId)this.questKills=Math.min(MAIN_QUEST.targetCount,this.questKills+1);this.gainExp(e.xp);const gold=rand(...e.gold);this.drops.push({x:e.x+15,y:e.y,type:"gold",amount:gold,label:"金币 +"+gold});if(Math.random()<.35||e.elite)this.drops.push({x:e.x-12,y:e.y+8,type:"gear",item:GEAR[rand(0,GEAR.length-1)],label:"发现装备"});if(e.boss){this.drops.push({x:e.x,y:e.y,type:"gear",item:GEAR[3],label:"获得传说装备"});this.toast("腐化古树被击败！")}else this.toast(e.elite?"精英怪已击败":"怪物已击败");this.target=null;this.onChange()}
+  defeat(e){if(!e.alive)return;e.alive=false;e.respawnTimer=e.boss?90:e.elite?42:24;this.kills++;if(this.questAccepted&&!this.questClaimed&&e.id===MAIN_QUEST.targetEnemyId)this.questKills=Math.min(MAIN_QUEST.targetCount,this.questKills+1);\n    if(this.deepwoodQuestAccepted&&!this.deepwoodQuestClaimed&&e.id===DEEPWOOD_QUEST.targetEnemyId){this.deepwoodEliteKills=Math.min(1,this.deepwoodEliteKills+1);this.drops.push({x:e.x-18,y:e.y+12,type:"quest_item",itemId:DEEPWOOD_QUEST.materialId,amount:DEEPWOOD_QUEST.materialCount,label:DEEPWOOD_QUEST.materialName+" +"+DEEPWOOD_QUEST.materialCount});}this.gainExp(e.xp);const gold=rand(...e.gold);this.drops.push({x:e.x+15,y:e.y,type:"gold",amount:gold,label:"金币 +"+gold});if(Math.random()<.35||e.elite)this.drops.push({x:e.x-12,y:e.y+8,type:"gear",item:GEAR[rand(0,GEAR.length-1)],label:"发现装备"});if(e.boss){this.drops.push({x:e.x,y:e.y,type:"gear",item:GEAR[3],label:"获得传说装备"});this.toast("腐化古树被击败！")}else this.toast(e.elite?"精英怪已击败":"怪物已击败");this.target=null;this.onChange()}
   gainExp(amount){this.exp+=amount;while(this.exp>=this.level*100){this.exp-=this.level*100;this.level++;this.skillPoints++;this.hp=this.maxHp;this.toast("等级提升！当前等级 "+this.level+" · 获得技能点") }}
   switchClass(nextId){if(!CLASSES[nextId]||nextId===this.classId)return false;const ratio=this.hp/this.maxHp;this.classId=nextId;this.hp=Math.max(1,Math.round(this.maxHp*ratio));this.toast("已切换职业："+this.klass.name);return true}
   upgradeSkill(){if(this.skillPoints<=0||this.skillLevel>=5)return false;this.skillPoints--;this.skillLevel++;this.toast("技能提升至 "+this.skillLevel+" 级");return true}
   usePotion(){if(this.potions<=0){this.toast("药水不足");return}if(this.hp>=this.maxHp){this.toast("生命值已满");return}this.potions--;const heal=Math.round(this.maxHp*.45);this.hp=Math.min(this.maxHp,this.hp+heal);this.toast("恢复生命 +"+heal)}
   toggleAuto(){this.auto=!this.auto;this.toast(this.auto?"自动战斗已开启":"自动战斗已关闭")}
-  updateRegion(){const r=REGIONS.find(x=>this.player.y>=x.minY&&this.player.y<x.maxY)||REGIONS[0];if(r.id!==this.region){this.region=r.id;this.target=null;this.activateRegion(r.id);this.toast("进入 "+r.name);}}
+  updateRegion(){const r=REGIONS.find(x=>this.player.y>=x.minY&&this.player.y<x.maxY)||REGIONS[0];if(r.id!==this.region){this.region=r.id;this.target=null;this.activateRegion(r.id);if(r.id==="deepwood"&&this.deepwoodQuestAccepted)this.deepwoodEntered=true;this.toast("进入 "+r.name);}}
   get nearbyNpc(){return NPCS.find(npc=>this.distance(this.player,npc)<=92)||null}
   interactNpc(npcId){
     const npc=NPCS.find(item=>item.id===npcId);
@@ -119,7 +120,7 @@ export class Game{
     this.toast("购买成功："+item.name);
     this.onChange();return true;
   }
-  acceptQuest(){
+  acceptDeepwoodQuest(){\n    if(this.activeNpcId!==DEEPWOOD_QUEST.npcId||this.nearbyNpc?.id!==DEEPWOOD_QUEST.npcId){this.toast("请先靠近守林村长交谈");return false}\n    if(!this.questClaimed){this.toast("请先完成清理林间主线");return false}\n    if(this.level<3){this.toast("需要达到 Lv.3 才能接取密林委托");return false}\n    if(this.deepwoodQuestAccepted){this.toast("密林委托已经接取");return false}\n    this.deepwoodQuestAccepted=true;this.deepwoodEntered=false;this.deepwoodEliteKills=0;this.questMaterials=0;this.toast("已接取：调查幽暗密林并收集腐化树皮");this.onChange();return true;\n  }\n  claimDeepwoodQuest(){\n    if(this.activeNpcId!==DEEPWOOD_QUEST.npcId||this.nearbyNpc?.id!==DEEPWOOD_QUEST.npcId){this.toast("请返回村庄与守林村长交谈");return false}\n    if(!this.deepwoodQuestAccepted||!this.deepwoodEntered||this.deepwoodEliteKills<1||this.questMaterials<DEEPWOOD_QUEST.materialCount||this.deepwoodQuestClaimed){this.toast("密林委托条件尚未满足");return false}\n    this.deepwoodQuestClaimed=true;this.questMaterials-=DEEPWOOD_QUEST.materialCount;this.gainExp(DEEPWOOD_QUEST.reward.exp);this.gold+=DEEPWOOD_QUEST.reward.gold;this.inventory.push({...DEEPWOOD_QUEST.reward.gear});this.toast("密林委托完成：获得 180 经验、160 金币与密林守护甲");this.onChange();return true;\n  }\n  acceptQuest(){
     if(this.activeNpcId!==MAIN_QUEST.npcId||this.nearbyNpc?.id!==MAIN_QUEST.npcId){this.toast("请先靠近守林村长交谈");return false}
     if(this.questAccepted){this.toast("任务已经接取");return false}
     this.questAccepted=true;this.questKills=0;this.toast("已接取：击败 3 名森林劫掠者");this.onChange();return true;
@@ -131,5 +132,5 @@ export class Game{
   }
   toast(message){this.notice=message;this.noticeTime=2.1}
   save(){const ok=writeSave(this);this.toast(ok?"本地存档成功":"存档失败，请检查浏览器空间")}
-  snapshot(){return {level:this.level,exp:this.exp,gold:this.gold,potions:this.potions,hp:this.hp,maxHp:this.maxHp,attack:this.attack,power:this.power,classId:this.classId,klass:this.klass,region:this.region,kills:this.kills,questKills:this.questKills,skillPoints:this.skillPoints,questAccepted:this.questAccepted,questClaimed:this.questClaimed,inventory:this.inventory,equipment:this.equipment,skillLevel:this.skillLevel,auto:this.auto,target:this.target}}
+  snapshot(){return {level:this.level,exp:this.exp,gold:this.gold,potions:this.potions,hp:this.hp,maxHp:this.maxHp,attack:this.attack,power:this.power,classId:this.classId,klass:this.klass,region:this.region,kills:this.kills,questKills:this.questKills,skillPoints:this.skillPoints,questAccepted:this.questAccepted,questClaimed:this.questClaimed,deepwoodQuestAccepted:this.deepwoodQuestAccepted,deepwoodQuestClaimed:this.deepwoodQuestClaimed,deepwoodEntered:this.deepwoodEntered,deepwoodEliteKills:this.deepwoodEliteKills,questMaterials:this.questMaterials,inventory:this.inventory,equipment:this.equipment,skillLevel:this.skillLevel,auto:this.auto,target:this.target}}
 }
