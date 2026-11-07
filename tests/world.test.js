@@ -162,6 +162,7 @@ test("blacksmith shop requires proximity and deducts gold for valid purchases",(
   assert.equal(game.buyShopItem("iron_sword"),false);
   game.player.x=310;game.player.y=185;
   assert.equal(game.interactNpc("village_smith"),true);
+  game.gold=200;
   const before=game.gold;
   assert.equal(game.buyShopItem("iron_sword"),true);
   assert.equal(game.gold,before-120);
