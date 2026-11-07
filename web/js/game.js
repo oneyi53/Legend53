@@ -25,7 +25,7 @@ export class Game{
     const restoredEnemies=Array.isArray(saved?.enemies)?saved.enemies.filter(e=>e&&typeof e.id==="string"&&Number.isFinite(e.x)&&Number.isFinite(e.y)&&Number.isFinite(e.hp)&&Number.isFinite(e.hpMax)):null;
     if(restoredEnemies)this.enemies=restoredEnemies.map(e=>({...e,regionId:e.regionId||REGIONS.find(r=>e.y>=r.minY&&e.y<r.maxY)?.id||"village",alive:e.alive!==false,active:false,attackTimer:Math.max(0,Number(e.attackTimer)||0),phase:Number(e.phase)||0}));
     this.drops=Array.isArray(saved?.drops)?saved.drops.filter(d=>d&&Number.isFinite(d.x)&&Number.isFinite(d.y)&&typeof d.type==="string"):[];
-    this.updateRegion();this.activateRegion(this.region);this.hp=clamp(this.hp,1,this.maxHp);
+    this.player.y=clamp(this.player.y,70,this.maxReachableY);this.updateRegion();this.activateRegion(this.region);this.hp=clamp(this.hp,1,this.maxHp);
   }
   get klass(){return CLASSES[this.classId]} get maxHp(){return this.klass.maxHp+(this.level-1)*12+this.stat("health")} get attack(){return this.klass.attack+(this.level-1)*2+this.stat("attack")} get defense(){return this.klass.defense} get power(){return Math.round(this.level*12+this.attack*4+this.maxHp*.35+this.stat("defense")*8)}
   stat(key){return Object.values(this.equipment).reduce((n,item)=>n+(item?.[key]||0),0)}
@@ -76,14 +76,14 @@ export class Game{
       }
       if(dist<43&&e.attackTimer<=0){this.takeDamage(e.attack);e.attackTimer=e.boss?1.45:1.25}else e.attackTimer-=dt;
     }
-    if(this.auto){if(!this.target||!this.target.alive)this.target=this.nearest(this.klass.range+180);if(this.target){const dist=this.distance(this.player,this.target);if(dist>this.klass.range){const dx=(this.target.x-this.player.x)/dist,dy=(this.target.y-this.player.y)/dist;this.movePlayer(dx*150*dt,dy*150*dt)}else this.basicAttack()}}
+    if(this.auto){if(!this.target||!this.target.alive||!this.target.active)this.target=this.nearest(this.klass.range+180);if(this.target){const dist=this.distance(this.player,this.target);if(dist>this.klass.range){const dx=(this.target.x-this.player.x)/dist,dy=(this.target.y-this.player.y)/dist;this.movePlayer(dx*150*dt,dy*150*dt)}else this.basicAttack()}}
     this.drops=this.drops.filter(drop=>{if(this.distance(this.player,drop)<42){if(drop.type==="gold")this.gold+=drop.amount;else if(drop.type==="exp")this.gainExp(drop.amount);else this.inventory.push(drop.item);this.toast(drop.label);return false}return true});
     this.effects=this.effects.filter(f=>{f.life-=dt;return f.life>0});this.damageTexts=this.damageTexts.filter(t=>{t.life-=dt;t.y-=24*dt;return t.life>0});
     if(this.noticeTime>0)this.noticeTime-=dt;
   }
   distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
   nearest(range=400){let best=null,dist=range;for(const e of this.enemies){if(!e.alive||!e.active)continue;const d=this.distance(this.player,e);if(d<dist){best=e;dist=d}}return best}
-  basicAttack(){if(this.player.attackTimer>0)return;let target=this.target?.alive?this.target:this.nearest(this.klass.range);if(!target)return;const dist=this.distance(this.player,target);if(dist>this.klass.range)return;this.target=target;const damage=Math.round(this.attack*(Math.random()<.12?1.8:1));target.hp-=damage;this.player.attackTimer=.72;this.effects.push({x:target.x,y:target.y,life:.25,max:.25,type:"hit"});this.damageTexts.push({x:target.x,y:target.y-35,text:String(damage),life:.8});if(target.hp<=0)this.defeat(target)}
+  basicAttack(){if(this.player.attackTimer>0)return;let target=this.target?.alive&&this.target?.active?this.target:this.nearest(this.klass.range);if(!target)return;const dist=this.distance(this.player,target);if(dist>this.klass.range)return;this.target=target;const damage=Math.round(this.attack*(Math.random()<.12?1.8:1));target.hp-=damage;this.player.attackTimer=.72;this.effects.push({x:target.x,y:target.y,life:.25,max:.25,type:"hit"});this.damageTexts.push({x:target.x,y:target.y-35,text:String(damage),life:.8});if(target.hp<=0)this.defeat(target)}
   manualAttack(){const target=this.nearest(this.klass.range+20);if(target){this.target=target;this.basicAttack()}else this.toast("附近没有可攻击的目标")}
   castSkill(){if(this.player.skillTimer>0){this.toast("技能冷却中");return}const c=this.klass;this.player.skillTimer=c.skillCooldown;this.effects.push({x:this.player.x,y:this.player.y,life:.55,max:.55,type:"skill"});if(this.classId==="taoist"){const healed=Math.min(this.maxHp-this.hp,Math.round(this.maxHp*.28));this.hp+=healed;this.toast("灵符治疗 +" + healed);return}
     const targets=this.enemies.filter(e=>e.alive&&e.active&&this.distance(this.player,e)<(this.classId==="warrior"?145:260));if(!targets.length){this.toast("技能已释放");return}for(const e of targets){const dmg=Math.round(this.attack*c.skillPower*(1+this.skillLevel*.12));e.hp-=dmg;this.damageTexts.push({x:e.x,y:e.y-35,text:String(dmg),life:.9});if(e.hp<=0)this.defeat(e)}this.toast(c.skill+" 命中 "+targets.length+" 个目标")}
@@ -94,7 +94,7 @@ export class Game{
   upgradeSkill(){if(this.skillPoints<=0||this.skillLevel>=5)return false;this.skillPoints--;this.skillLevel++;this.toast("技能提升至 "+this.skillLevel+" 级");return true}
   usePotion(){if(this.potions<=0){this.toast("药水不足");return}if(this.hp>=this.maxHp){this.toast("生命值已满");return}this.potions--;const heal=Math.round(this.maxHp*.45);this.hp=Math.min(this.maxHp,this.hp+heal);this.toast("恢复生命 +"+heal)}
   toggleAuto(){this.auto=!this.auto;this.toast(this.auto?"自动战斗已开启":"自动战斗已关闭")}
-  updateRegion(){const r=REGIONS.find(x=>this.player.y>=x.minY&&this.player.y<x.maxY)||REGIONS[0];if(r.id!==this.region){this.region=r.id;this.activateRegion(r.id);this.toast("进入 "+r.name);}}
+  updateRegion(){const r=REGIONS.find(x=>this.player.y>=x.minY&&this.player.y<x.maxY)||REGIONS[0];if(r.id!==this.region){this.region=r.id;this.target=null;this.activateRegion(r.id);this.toast("进入 "+r.name);}}
   acceptQuest(){this.questAccepted=true;this.questKills=0;this.toast("已接取：击败 3 名森林劫掠者")}
   claimQuest(){if(this.questKills<3||this.questClaimed){this.toast("任务条件尚未满足");return}this.questClaimed=true;this.gainExp(80);this.inventory.push({id:"quest_badge",name:"巡林者徽记",slot:"armor",quality:"优秀",health:20,attack:0,defense:1});this.toast("任务完成：获得 80 经验与徽记")}
   toast(message){this.notice=message;this.noticeTime=2.1}
