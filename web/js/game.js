@@ -74,7 +74,7 @@ export class Game{
   upgradeSkill(){if(this.skillPoints<=0||this.skillLevel>=5)return false;this.skillPoints--;this.skillLevel++;this.toast("技能提升至 "+this.skillLevel+" 级");return true}
   usePotion(){if(this.potions<=0){this.toast("药水不足");return}if(this.hp>=this.maxHp){this.toast("生命值已满");return}this.potions--;const heal=Math.round(this.maxHp*.45);this.hp=Math.min(this.maxHp,this.hp+heal);this.toast("恢复生命 +"+heal)}
   toggleAuto(){this.auto=!this.auto;this.toast(this.auto?"自动战斗已开启":"自动战斗已关闭")}
-  updateRegion(){const r=REGIONS.find(x=>this.player.y>=x.minY&&this.player.y<x.maxY)||REGIONS[0];if(r.id!==this.region){this.region=r.id;this.toast("进入 "+r.name);if(r.id==="altar"&&!this.enemies.some(e=>e.boss&&e.alive)){this.enemies.push(this.makeEnemy(ENEMIES[3],450,1330,"altar_boss","altar"))}}}
+  updateRegion(){const r=REGIONS.find(x=>this.player.y>=x.minY&&this.player.y<x.maxY)||REGIONS[0];if(r.id!==this.region){this.region=r.id;this.toast("进入 "+r.name);if(r.id==="altar"&&!this.enemies.some(e=>e.boss)){this.enemies.push(this.makeEnemy(ENEMIES[3],450,1330,"altar_boss","altar"))}}}
   acceptQuest(){this.questAccepted=true;this.questKills=0;this.toast("已接取：击败 3 名森林劫掠者")}
   claimQuest(){if(this.questKills<3||this.questClaimed){this.toast("任务条件尚未满足");return}this.questClaimed=true;this.gainExp(80);this.inventory.push({id:"quest_badge",name:"巡林者徽记",slot:"armor",quality:"优秀",health:20,attack:0,defense:1});this.toast("任务完成：获得 80 经验与徽记")}
   toast(message){this.notice=message;this.noticeTime=2.1}
