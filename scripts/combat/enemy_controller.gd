@@ -161,17 +161,47 @@ func take_damage(amount: float) -> void:
 func _draw() -> void:
     if is_elite:
         var elite_color := Color("#75d9e8") if elite_type == "swift" else (Color("#d5c7a0") if elite_type == "guardian" else Color("#e78a58"))
-        draw_arc(Vector2(0, 0), 23.0, 0.0, TAU, 32, elite_color, 2.5, true)
-        draw_circle(Vector2(0, -23), 4.0, elite_color)
-    draw_circle(Vector2(0, 8), 25.0 if is_boss else 17.0, Color("#26362f"))
-    var body_color := Color("#7d493d") if is_boss else (Color("#b65b43") if enemy_level < 5 else Color("#8c5b9e"))
-    if is_elite:
-        body_color = Color("#3d9eaa") if elite_type == "swift" else (Color("#9c8960") if elite_type == "guardian" else Color("#b34d37"))
-    if enemy_level >= 8 and not is_boss:
-        body_color = Color("#b77a36")
-    draw_colored_polygon(PackedVector2Array([Vector2(0,-17),Vector2(15,-2),Vector2(11,15),Vector2(-11,15),Vector2(-15,-2)]), body_color)
+        draw_arc(Vector2(0, 1), 27.0, 0.0, TAU, 36, elite_color, 2.2, true)
+        draw_circle(Vector2(0, -28), 3.5, elite_color)
+
+    if is_boss:
+        # Corrupted ancient tree: roots, trunk, antler-like branches and glowing core.
+        draw_colored_polygon(PackedVector2Array([Vector2(-25, 13), Vector2(-43, 22), Vector2(-18, 19), Vector2(-5, 12), Vector2(8, 20), Vector2(39, 22), Vector2(21, 10)]), Color("#302d25"))
+        draw_colored_polygon(PackedVector2Array([Vector2(-18, 13), Vector2(-15, -21), Vector2(-7, -35), Vector2(8, -35), Vector2(17, -18), Vector2(18, 13)]), Color("#654b35"))
+        draw_colored_polygon(PackedVector2Array([Vector2(-13, -17), Vector2(-30, -37), Vector2(-27, -51), Vector2(-20, -39), Vector2(-8, -28)]), Color("#79573a"))
+        draw_colored_polygon(PackedVector2Array([Vector2(12, -19), Vector2(29, -43), Vector2(27, -54), Vector2(19, -42), Vector2(6, -28)]), Color("#79573a"))
+        draw_colored_polygon(PackedVector2Array([Vector2(-5, -28), Vector2(-2, -45), Vector2(4, -51), Vector2(7, -34)]), Color("#98704a"))
+        draw_circle(Vector2(-7, -10), 3.3, Color("#e4a64c"))
+        draw_circle(Vector2(8, -10), 3.3, Color("#e4a64c"))
+        draw_line(Vector2(-7, 0), Vector2(8, 0), Color("#30231f"), 2.0, true)
+        draw_arc(Vector2(0, -2), 18.0, PI, TAU, 24, Color("#a7bd62"), 2.0, true)
+    else:
+        var body_color := Color("#b65b43") if enemy_level < 5 else Color("#8c5b9e")
+        if is_elite:
+            body_color = Color("#3d9eaa") if elite_type == "swift" else (Color("#9c8960") if elite_type == "guardian" else Color("#b34d37"))
+        if enemy_level >= 8:
+            body_color = Color("#b77a36")
+
+        # Original forest beast silhouette with four paws, muzzle, ears and tail.
+        draw_line(Vector2(-12, 3), Vector2(-21, 12), Color("#49352f"), 4.0, true)
+        draw_line(Vector2(-21, 12), Vector2(-25, 8), Color("#49352f"), 3.0, true)
+        draw_colored_polygon(PackedVector2Array([Vector2(-17, -6), Vector2(-11, -14), Vector2(7, -15), Vector2(17, -7), Vector2(15, 7), Vector2(5, 13), Vector2(-12, 10)]), body_color)
+        draw_line(Vector2(-10, 5), Vector2(-13, 16), Color("#49352f"), 3.5, true)
+        draw_line(Vector2(8, 6), Vector2(12, 16), Color("#49352f"), 3.5, true)
+        draw_line(Vector2(14, 0), Vector2(20, 10), Color("#49352f"), 3.5, true)
+        draw_colored_polygon(PackedVector2Array([Vector2(7, -10), Vector2(12, -20), Vector2(17, -11), Vector2(19, -2), Vector2(12, 4), Vector2(5, 0)]), body_color.lightened(0.12))
+        draw_colored_polygon(PackedVector2Array([Vector2(8, -17), Vector2(9, -25), Vector2(14, -18)]), Color("#49352f"))
+        draw_circle(Vector2(15, -8), 1.5, Color("#f4d27a"))
+        draw_colored_polygon(PackedVector2Array([Vector2(19, -1), Vector2(27, 2), Vector2(18, 5)]), Color("#d8b69b"))
+        if enemy_level >= 5 or elite_type == "brute":
+            draw_colored_polygon(PackedVector2Array([Vector2(-8, -11), Vector2(-15, -20), Vector2(-13, -8)]), Color("#d8c7a0"))
+        if elite_type == "guardian":
+            draw_arc(Vector2(0, -3), 17.0, PI, TAU, 24, Color("#d9c99e"), 3.0, true)
+        elif elite_type == "swift":
+            draw_line(Vector2(-5, -17), Vector2(11, -17), Color("#b5eff0"), 1.5, true)
+
     var bar_width := 58.0 if is_boss else 36.0
-    var bar_y := -43.0 if is_boss else -29.0
+    var bar_y := -67.0 if is_boss else -34.0
     draw_rect(Rect2(-bar_width * 0.5, bar_y, bar_width, 5), Color("#382d2a"))
     draw_rect(Rect2(-bar_width * 0.5, bar_y, bar_width * clampf(health / maxf(max_health, 1), 0, 1), 5), Color("#d85b4d"))
     if is_boss and _boss_attack_pending:
@@ -179,6 +209,6 @@ func _draw() -> void:
         draw_arc(Vector2.ZERO, _boss_telegraph_radius / scale.x, 0.0, TAU, 48, Color(1.0, 0.20, 0.14, warning_alpha), 3.5, true)
         draw_arc(Vector2.ZERO, (_boss_telegraph_radius / scale.x) * clampf(1.0 - _boss_windup / 0.82, 0.08, 1.0), 0.0, TAU, 48, Color(1.0, 0.62, 0.28, 0.9), 2.0, true)
     if is_boss and ThemeDB.fallback_font:
-        draw_string(ThemeDB.fallback_font, Vector2(-56, -52), boss_title, HORIZONTAL_ALIGNMENT_CENTER, 112, 10, Color("#ffd59a"))
+        draw_string(ThemeDB.fallback_font, Vector2(-56, -75), boss_title, HORIZONTAL_ALIGNMENT_CENTER, 112, 10, Color("#ffd59a"))
     elif is_elite and ThemeDB.fallback_font:
-        draw_string(ThemeDB.fallback_font, Vector2(-35, -36), elite_title, HORIZONTAL_ALIGNMENT_CENTER, 70, 9, Color("#f5d99a"))
+        draw_string(ThemeDB.fallback_font, Vector2(-35, -43), elite_title, HORIZONTAL_ALIGNMENT_CENTER, 70, 9, Color("#f5d99a"))
