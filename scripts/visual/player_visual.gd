@@ -42,7 +42,7 @@ func _draw() -> void:
         return
     var parent := get_parent()
     var class_id := str(parent.get("class_id")) if is_instance_valid(parent) else "warrior"
-    var moving := is_instance_valid(parent) and parent is CharacterBody2D and parent.velocity.length() > 8.0
+    var moving: bool = is_instance_valid(parent) and parent is CharacterBody2D and (parent as CharacterBody2D).velocity.length() > 8.0
     var bob := sin(_idle_clock * (8.5 if moving else 2.8)) * (2.0 if moving else 0.8)
     var step := sin(_idle_clock * 8.5) * 2.0 if moving else 0.0
     var cape := Color("#8d2936")
