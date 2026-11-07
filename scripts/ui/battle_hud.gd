@@ -27,7 +27,7 @@ var _nearby_npc: Node2D
 var _service_npcs: Array[Node2D] = []
 var _dialogue_title: Label
 var _dialogue_secondary: Button
-var _dialogue_forge_button: Button
+var _dialogue_forge_button: Button\nvar _dialogue_awaken_button: Button
 var _currency_text: Label
 var _potion_button: Button
 var _skill_button: Button
@@ -257,7 +257,7 @@ func _open_npc_dialogue() -> void:
             _dialogue_secondary.visible = true
             _dialogue_secondary.text = "金币强化当前武器与护甲（各50金币）"
             _dialogue_forge_button.visible = true
-            _dialogue_forge_button.text = "符文锻造武器与护甲（每件100金币+2碎片）"
+            _dialogue_forge_button.text = "符文锻造武器与护甲（每件100金币+2碎片）"\n            _dialogue_awaken_button.visible = true\n            _dialogue_awaken_button.text = "觉醒已装备武器/衣服/项链（区域材料+金币）"
         "merchant":
             _dialogue_text.text = "生命药剂售价 30 金币，使用后恢复 60 点生命。当前金币：%d，药剂：%d。" % [int(_player.get("gold")), int(_player.get("potions"))]
             _dialogue_action.text = "购买生命药剂 · 30金币"
@@ -309,6 +309,17 @@ func _forge_equipment() -> void:
     var armor_ok: bool = _player.call("forge_equipment", "armor")
     var count := int(weapon_ok) + int(armor_ok)
     _notice_text.text = "符文锻造完成：%d 件装备" % count if count > 0 else "锻造失败：每件需100金币、2枚符文碎片，且锻造等级最多+3"
+    _open_npc_dialogue()
+    _refresh_inventory()
+
+func _awaken_equipment() -> void:
+    if not is_instance_valid(_player):
+        return
+    var awakened := 0
+    for slot in ["weapon", "armor", "necklace"]:
+        if _player.call("awaken_equipment", slot):
+            awakened += 1
+    _notice_text.text = "装备觉醒成功：%d 件" % awakened if awakened > 0 else "觉醒未完成：检查装备套装/传说品质、区域材料、符文与金币；每件最多觉醒3阶"
     _open_npc_dialogue()
     _refresh_inventory()
 
@@ -400,7 +411,7 @@ func _refresh_inventory() -> void:
     lines.append(str(_player.call("get_collection_summary")))
     var materials: Dictionary = _player.get("materials")
     lines.append("金币：%d    生命药剂：%d" % [int(_player.get("gold")), int(_player.get("potions"))])
-    lines.append("锻造材料：符文碎片 ×%d（精英掉落；首领奖励更多）" % int(materials.get("rune_fragment", 0)))
+    lines.append("锻造材料：符文碎片 ×%d" % int(materials.get("rune_fragment", 0)))\n    lines.append(str(_player.call("get_awaken_material_summary")))\n    for slot in ["weapon", "armor", "necklace"]:\n        var equipped_item: Dictionary = _player.get("equipment").get(slot, {})\n        if not equipped_item.is_empty():\n            lines.append("%s觉醒：+%d/3" % [str(equipped_item.get("name", slot)), int(equipped_item.get("awaken_level", 0))])
     _inventory_text.text = "\n".join(lines)
     _class_button.text = "当前：%s · 点击切换职业" % str(_player.call("get_class_name"))
     _potion_button.disabled = int(_player.get("potions")) <= 0 or float(_player.get("health")) >= float(_player.get("max_health"))

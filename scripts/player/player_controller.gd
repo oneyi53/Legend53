@@ -22,7 +22,7 @@ var level: int = 1
 var experience: int = 0
 var gold: int = 100
 var potions: int = 0
-var materials: Dictionary = {"rune_fragment": 0}
+var materials: Dictionary = {"rune_fragment": 0, "heartwood_essence": 0, "ancient_rune": 0, "ancient_core": 0}
 var class_id: String = "warrior"
 var discovered_regions: Array[String] = ["village"]
 var inventory: Array[Dictionary] = []
@@ -305,6 +305,45 @@ func forge_equipment(slot: String) -> bool:
     save_game()
     return true
 
+func awaken_equipment(slot: String) -> bool:
+    if not EQUIPMENT_SLOTS.has(slot):
+        return false
+    var item: Dictionary = equipment.get(slot, {}).duplicate(true)
+    if item.is_empty():
+        return false
+    var awaken_level := int(item.get("awaken_level", 0))
+    if awaken_level >= 3:
+        return false
+    var set_id := str(item.get("set_id", ""))
+    var is_boss_relic := str(item.get("quality", "")) == "legendary" or str(item.get("item_id", "")).begins_with("boss_")
+    var material_id := "ancient_core" if is_boss_relic else ("heartwood_essence" if set_id == "forest" else ("ancient_rune" if set_id == "ruins" else ""))
+    if material_id.is_empty():
+        return false
+    var next_level := awaken_level + 1
+    var material_cost := next_level
+    var rune_cost := 2 if is_boss_relic else 0
+    var gold_cost := 150 * next_level
+    if gold < gold_cost or int(materials.get(material_id, 0)) < material_cost or int(materials.get("rune_fragment", 0)) < rune_cost:
+        return false
+    gold -= gold_cost
+    materials[material_id] = int(materials.get(material_id, 0)) - material_cost
+    materials["rune_fragment"] = int(materials.get("rune_fragment", 0)) - rune_cost
+    item["awaken_level"] = next_level
+    var stat := _primary_stat_for_slot(slot)
+    var increase := 3.0 if stat == "attack" else (18.0 if stat == "health" else (2.0 if stat == "defense" else 1.0))
+    item[stat] = float(item.get(stat, 0.0)) + increase
+    equipment[slot] = item
+    health = minf(health, max_health)
+    gold_changed.emit(gold)
+    equipment_changed.emit()
+    inventory_changed.emit()
+    health_changed.emit(health, max_health)
+    save_game()
+    return true
+
+func get_awaken_material_summary() -> String:
+    return "觉醒材料：幽木精华 ×%d · 远古符文 ×%d · 古树核心 ×%d" % [int(materials.get("heartwood_essence", 0)), int(materials.get("ancient_rune", 0)), int(materials.get("ancient_core", 0))]
+
 func buy_health_potion() -> bool:
     if gold < 30:
         return false
@@ -392,7 +431,7 @@ func get_equipment_summary() -> String:
     lines.append("攻击 %d · 生命 %d · 防御 %d · 暴击 %.1f%% · 攻速 +%.1f%%" % [roundi(attack_power), roundi(max_health), roundi(_equipment_stat("defense")), critical_chance * 100.0, _equipment_stat("attack_speed")])
     lines.append("角色战力：%d" % get_combat_power())
     lines.append(get_set_bonus_summary())
-    lines.append(get_collection_summary())
+    lines.append(get_collection_summary())\n    lines.append(get_awaken_material_summary())
     return "\n".join(lines)
 
 func _begin_respawn() -> void:
@@ -497,7 +536,7 @@ func _load_game() -> void:
     potions = maxi(0, int(parsed.get("potions", 0)))
     var saved_materials: Variant = parsed.get("materials", {})
     materials = saved_materials.duplicate(true) if saved_materials is Dictionary else {}
-    materials["rune_fragment"] = maxi(0, int(materials.get("rune_fragment", 0)))
+    materials["rune_fragment"] = maxi(0, int(materials.get("rune_fragment", 0)))\n    for material_id in ["heartwood_essence", "ancient_rune", "ancient_core"]:\n        materials[material_id] = maxi(0, int(materials.get(material_id, 0)))
     class_id = str(parsed.get("class_id", "warrior"))
     if class_id not in ["warrior", "mage", "taoist"]:
         class_id = "warrior"
