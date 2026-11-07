@@ -51,7 +51,7 @@ func _run_visual_checks() -> void:
         push_error("Visual smoke test: inventory panel did not become visible.")
         quit(1)
         return
-    for control_name in ["_potion_button", "_weapon_button", "_armor_button", "_equip_all_button"]:
+    for control_name in ["_skill_upgrade_button", "_potion_button", "_weapon_button", "_armor_button", "_equip_all_button"]:
         var action_control := hud.get(control_name) as Control
         if not is_instance_valid(action_control) or not action_control.visible:
             push_error("Visual smoke test: inventory action %s is missing or hidden." % control_name)
@@ -62,6 +62,10 @@ func _run_visual_checks() -> void:
             push_error("Visual smoke test: inventory action %s is outside the visible screen." % control_name)
             quit(1)
             return
+    if not is_instance_valid(hud.get("_dialogue_awaken_button")):
+        push_error("Visual smoke test: blacksmith awakening action is missing.")
+        quit(1)
+        return
     if not _capture_viewport("hero-world-inventory.png"):
         quit(1)
         return

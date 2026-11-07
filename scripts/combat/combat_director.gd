@@ -21,6 +21,7 @@ var auto_combat_enabled: bool = false
 var current_target: Node2D
 var _attack_timer: float = 0.0
 var _skill_cooldown: float = 0.0
+var _manual_approach_active := false
 var _bound_enemies: Array[Node] = []
 
 func _ready() -> void:
@@ -36,6 +37,8 @@ func _process(delta: float) -> void:
     if Input.is_action_just_pressed("attack"):
         manual_attack()
     if not auto_combat_enabled:
+        if _manual_approach_active:
+            _process_manual_approach()
         return
     var player := get_tree().get_first_node_in_group("player") as Node2D
     if not is_instance_valid(player):
@@ -92,6 +95,7 @@ func _on_enemy_defeated(enemy: Node2D) -> void:
             player.add_material("rune_fragment", shard_count)
         loot_message.emit("精英怪击败！获得锻造符文碎片 ×%d" % shard_count)
     if current_target == enemy:
+        _manual_approach_active = false
         current_target = null
         target_changed.emit(null)
 
@@ -201,6 +205,7 @@ func _on_equipment_collected(item: Dictionary) -> void:
 
 func toggle_auto_combat() -> void:
     auto_combat_enabled = not auto_combat_enabled
+    _manual_approach_active = false
     if not auto_combat_enabled:
         current_target = null
         var player := get_tree().get_first_node_in_group("player") as Node2D
@@ -216,11 +221,39 @@ func manual_attack() -> void:
         current_target = _find_nearest_target(manual_target_range)
         target_changed.emit(current_target)
     if not is_instance_valid(current_target):
+        loot_message.emit("附近没有可攻击的目标")
         return
     var player := get_tree().get_first_node_in_group("player") as Node2D
-    var effective_range := float(player.get("attack_range")) if is_instance_valid(player) else auto_attack_range
-    if is_instance_valid(player) and player.global_position.distance_to(current_target.global_position) <= effective_range:
+    if not is_instance_valid(player):
+        return
+    var effective_range := float(player.get("attack_range"))
+    var distance := player.global_position.distance_to(current_target.global_position)
+    if distance > effective_range:
+        _manual_approach_active = true
+        if player.has_method("set_auto_move_target"):
+            player.call("set_auto_move_target", current_target)
+        loot_message.emit("正在接近目标…")
+    else:
+        _manual_approach_active = false
+        if player.has_method("clear_auto_move_target"):
+            player.call("clear_auto_move_target")
         _attack_current_target()
+
+func _process_manual_approach() -> void:
+    var player := get_tree().get_first_node_in_group("player") as Node2D
+    if not is_instance_valid(player) or not is_instance_valid(current_target):
+        _manual_approach_active = false
+        return
+    var distance := player.global_position.distance_to(current_target.global_position)
+    var effective_range := float(player.get("attack_range"))
+    if distance > effective_range:
+        if player.has_method("set_auto_move_target"):
+            player.call("set_auto_move_target", current_target)
+        return
+    _manual_approach_active = false
+    if player.has_method("clear_auto_move_target"):
+        player.call("clear_auto_move_target")
+    _attack_current_target()
 
 func get_skill_cooldown_remaining() -> float:
     return _skill_cooldown
