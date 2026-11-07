@@ -62,6 +62,7 @@ func _iso_point(grid_x: float, grid_y: float) -> Vector2:
     return GRID_ORIGIN + Vector2((grid_x - grid_y) * TILE_HEIGHT * 0.5, (grid_x + grid_y) * TILE_WIDTH * 0.5)
 
 func _draw() -> void:
+    draw_rect(Rect2(-600.0, -600.0, 1920.0, 2600.0), Color("#18271f"))
     for y in range(GRID_HEIGHT):
         for x in range(GRID_WIDTH):
             var center := _iso_point(float(x) + 0.5, float(y) + 0.5)
