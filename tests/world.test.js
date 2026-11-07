@@ -187,3 +187,36 @@ test("potion purchase increments potion stock and persists through save",()=>{
   const restored=new Game();
   assert.equal(restored.potions,before+1);
 });
+
+test("deepwood quest unlocks only after first quest and level three",()=>{
+  const game=new Game();game.player.y=260;game.interactNpc("village_elder");
+  assert.equal(game.acceptDeepwoodQuest(),false);
+  game.questClaimed=true;game.level=2;
+  assert.equal(game.acceptDeepwoodQuest(),false);
+  game.level=3;assert.equal(game.acceptDeepwoodQuest(),true);
+});
+test("deepwood quest requires entering region, defeating exact elite and collecting its material",()=>{
+  const game=new Game();game.player.y=260;game.questClaimed=true;game.level=3;game.interactNpc("village_elder");game.acceptDeepwoodQuest();
+  game.player.y=600;game.updateRegion();assert.equal(game.deepwoodEntered,true);
+  const wolf=game.enemies.find(e=>e.id==="thorn_wolf");
+  const elite=game.enemies.find(e=>e.id==="woodland_chief");
+  game.defeat(wolf);assert.equal(game.deepwoodEliteKills,0);
+  game.defeat(elite);assert.equal(game.deepwoodEliteKills,1);
+  assert.equal(game.questMaterials,0);
+  const material=game.drops.find(d=>d.type==="quest_item");assert.ok(material);
+  game.player.x=material.x;game.player.y=material.y;game.update(0.01,input);
+  assert.equal(game.questMaterials,3);
+});
+test("deepwood quest reward requires returning to elder and can only be claimed once",()=>{
+  const game=new Game();game.player.y=260;game.questClaimed=true;game.level=3;game.interactNpc("village_elder");game.acceptDeepwoodQuest();
+  game.deepwoodEntered=true;game.deepwoodEliteKills=1;game.questMaterials=3;
+  game.player.y=650;game.updateRegion();assert.equal(game.claimDeepwoodQuest(),false);
+  game.player.y=260;game.updateRegion();game.interactNpc("village_elder");
+  const gold=game.gold;assert.equal(game.claimDeepwoodQuest(),true);assert.equal(game.gold,gold+160);
+  assert.ok(game.inventory.some(item=>item.id==="deepwood_guardian_armor"));
+  assert.equal(game.claimDeepwoodQuest(),false);
+});
+test("deepwood quest progress persists in version four save",()=>{
+  const game=new Game();game.deepwoodQuestAccepted=true;game.deepwoodEntered=true;game.deepwoodEliteKills=1;game.questMaterials=2;game.save();
+  const restored=new Game();assert.equal(restored.deepwoodQuestAccepted,true);assert.equal(restored.deepwoodEntered,true);assert.equal(restored.deepwoodEliteKills,1);assert.equal(restored.questMaterials,2);
+});
