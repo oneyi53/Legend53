@@ -31,7 +31,7 @@ func _process(delta: float) -> void:
     _idle_clock += delta
     _refresh_class_art()
     var parent := get_parent()
-    var moving := is_instance_valid(parent) and parent is CharacterBody2D and parent.velocity.length() > 8.0
+    var moving: bool = is_instance_valid(parent) and parent is CharacterBody2D and (parent as CharacterBody2D).velocity.length() > 8.0
     _art_sprite.position.y = -8.0 + sin(_idle_clock * (8.5 if moving else 2.8)) * (2.0 if moving else 0.8)
     _art_sprite.rotation = sin(_idle_clock * 8.5) * 0.025 if moving else sin(_idle_clock * 1.4) * 0.008
     queue_redraw()

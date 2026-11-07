@@ -73,7 +73,7 @@ func _process(delta: float) -> void:
         _art_sprite.position.y = -5.0 + sin(_visual_clock * (3.1 if is_boss else 4.0)) * (1.7 if is_boss else 1.0)
         _art_sprite.rotation = sin(_visual_clock * 1.7) * 0.012
     var director := get_tree().get_first_node_in_group("combat_director")
-    var targeted := is_instance_valid(director) and director.get("current_target") == self
+    var targeted: bool = is_instance_valid(director) and director.get("current_target") == self
     if targeted != _was_targeted or is_boss:
         _was_targeted = targeted
         queue_redraw()

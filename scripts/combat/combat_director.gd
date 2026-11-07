@@ -178,7 +178,7 @@ func _spawn_equipment_drop(pos: Vector2, enemy: Node2D) -> void:
     var quality_names := {"common":"普通", "fine":"优秀", "rare":"稀有", "epic":"史诗", "legendary":"传说"}
     # Class affinity is a rare, class-specific secondary affix.
     if randf() < 0.28:
-        var affinity_class := ["warrior", "mage", "taoist"][randi_range(0, 2)]
+        var affinity_class: String = str(["warrior", "mage", "taoist"][randi_range(0, 2)])
         var affinity_stats := {"warrior":"defense", "mage":"critical_chance", "taoist":"health"}
         var affinity_values := {"warrior":2.0, "mage":2.0, "taoist":16.0}
         item["class_affinity"] = affinity_class
