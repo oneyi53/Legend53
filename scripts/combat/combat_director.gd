@@ -234,8 +234,8 @@ func _find_nearest_target(search_range: float) -> Node2D:
 func _spawn_combat_effect(world_position: Vector2, effect_kind: String, label_text: String, critical: bool) -> void:
     var effect := Node2D.new()
     effect.set_script(COMBAT_EFFECT_SCRIPT)
-    effect.effect_kind = effect_kind
-    effect.label_text = label_text
-    effect.is_critical = critical
+    effect.set("effect_kind", effect_kind)
+    effect.set("label_text", label_text)
+    effect.set("is_critical", critical)
     effect.global_position = world_position
     get_tree().current_scene.add_child(effect)

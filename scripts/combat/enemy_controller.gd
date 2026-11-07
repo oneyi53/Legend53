@@ -45,6 +45,12 @@ func _physics_process(delta: float) -> void:
         move_and_slide()
         return
     _attack_timer = maxf(0.0, _attack_timer - delta)
+    # The village is a protected sanctuary. Enemies disengage immediately
+    # when the player enters it and cannot cross its southern boundary.
+    if _player.global_position.y < SAFE_ZONE_END_Y:
+        velocity = Vector2.ZERO
+        move_and_slide()
+        return
     if is_boss and _boss_attack_pending:
         _boss_windup = maxf(0.0, _boss_windup - delta)
         queue_redraw()
@@ -53,12 +59,6 @@ func _physics_process(delta: float) -> void:
             if global_position.distance_to(_player.global_position) <= _boss_telegraph_radius and _player.has_method("take_damage"):
                 _player.take_damage(attack_damage)
             queue_redraw()
-        velocity = Vector2.ZERO
-        move_and_slide()
-        return
-    # The village is a protected sanctuary. Enemies disengage immediately
-    # when the player enters it and cannot cross its southern boundary.
-    if _player.global_position.y < SAFE_ZONE_END_Y:
         velocity = Vector2.ZERO
         move_and_slide()
         return
