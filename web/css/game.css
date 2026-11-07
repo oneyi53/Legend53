@@ -24,3 +24,5 @@
 @media(max-height:700px){.quest-chip{top:92px}.combat-controls{height:94px}.action-button{width:47px;height:47px}.attack-button{width:60px;height:60px}.resource-line{height:27px}.bottom-nav{height:36px}.player-card{padding:6px}.avatar-frame{width:42px;height:44px}}
 
 #npc-button:disabled{opacity:.55;filter:saturate(.5)}
+
+.npc-dialogue{padding:12px 13px;margin-bottom:10px;border:1px solid #b99b6277;border-radius:10px;background:linear-gradient(120deg,#3a3829,#202c24)}.npc-dialogue b{display:block;color:#f0d69d;font-size:12px;margin-bottom:5px}.npc-dialogue p{margin:0;color:#e4ddc8;font-size:12px;line-height:1.65}
