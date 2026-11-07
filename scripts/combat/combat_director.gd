@@ -79,8 +79,8 @@ func _on_enemy_defeated(enemy: Node2D) -> void:
     if enemy.is_boss:
         if is_instance_valid(player):
             player.add_experience(250)
-            player.add_inventory_item({"name":"古树守护者之刃","slot":"weapon","attack":12,"health":0})
-            player.add_inventory_item({"name":"远古树皮甲","slot":"armor","attack":0,"health":65})
+            player.add_inventory_item({"name":"传说·古树守护者之刃","slot":"weapon","attack":18,"health":0,"quality":"legendary","quality_rank":5})
+            player.add_inventory_item({"name":"传说·远古树皮甲","slot":"armor","attack":0,"health":90,"quality":"legendary","quality_rank":5})
         loot_message.emit("腐化古树已击败！获得首领奖励")
     elif enemy.is_elite or randf() <= equipment_drop_chance:
         _spawn_equipment_drop(enemy.global_position)
@@ -98,11 +98,31 @@ func _spawn_experience_drop(pos: Vector2) -> void:
     drop.connect("collected", Callable(self, "_on_experience_collected"))
 
 func _spawn_equipment_drop(pos: Vector2) -> void:
+    var roll := randf()
+    var quality := "common"
+    var rank := 1
+    if roll >= 0.995:
+        quality = "legendary"
+        rank = 5
+    elif roll >= 0.96:
+        quality = "epic"
+        rank = 4
+    elif roll >= 0.84:
+        quality = "rare"
+        rank = 3
+    elif roll >= 0.58:
+        quality = "fine"
+        rank = 2
+    var multiplier := [1.0, 1.0, 1.18, 1.42, 1.78, 2.35][rank]
     var item: Dictionary
     if randf() < 0.58:
-        item = {"name": "林地短刃", "slot": "weapon", "attack": randi_range(2, 5), "health": 0}
+        item = {"name": "林地短刃", "slot": "weapon", "attack": roundi(randi_range(2, 5) * multiplier), "health": 0}
     else:
-        item = {"name": "巡林皮甲", "slot": "armor", "attack": 0, "health": randi_range(12, 28)}
+        item = {"name": "巡林皮甲", "slot": "armor", "attack": 0, "health": roundi(randi_range(12, 28) * multiplier)}
+    var quality_names := {"common":"普通", "fine":"优秀", "rare":"稀有", "epic":"史诗", "legendary":"传说"}
+    item["quality"] = quality
+    item["quality_rank"] = rank
+    item["name"] = str(quality_names[quality]) + "·" + str(item["name"])
     var drop := Area2D.new()
     drop.set_script(GEAR_LOOT_SCRIPT)
     drop.item_data = item

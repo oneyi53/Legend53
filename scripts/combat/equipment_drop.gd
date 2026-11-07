@@ -26,5 +26,8 @@ func _on_body_entered(body: Node2D) -> void:
 
 func _draw() -> void:
     draw_circle(Vector2(0, 5), 16, Color(0.08, 0.12, 0.10, 0.4))
-    draw_colored_polygon(PackedVector2Array([Vector2(0, -19), Vector2(14, -3), Vector2(10, 15), Vector2(-10, 15), Vector2(-14, -3)]), Color("#d6b66c"))
-    draw_arc(Vector2.ZERO, 17, 0, TAU, 32, Color("#fff0bd"), 2.0, true)
+    var quality := str(item_data.get("quality", "common"))
+    var colors := {"common":Color("#b9b5a8"), "fine":Color("#62c77b"), "rare":Color("#55a9ef"), "epic":Color("#b477e8"), "legendary":Color("#f0b84e")}
+    var item_color: Color = colors.get(quality, Color("#d6b66c"))
+    draw_colored_polygon(PackedVector2Array([Vector2(0, -19), Vector2(14, -3), Vector2(10, 15), Vector2(-10, 15), Vector2(-14, -3)]), item_color)
+    draw_arc(Vector2.ZERO, 17, 0, TAU, 32, item_color.lightened(0.45), 2.5 if quality == "epic" or quality == "legendary" else 2.0, true)

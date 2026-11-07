@@ -361,7 +361,8 @@ func _refresh_inventory() -> void:
         for item in items:
             var slot_name := "武器" if str(item.get("slot", "")) == "weapon" else "护甲"
             var bonus := "+%d攻击" % int(item.get("attack", 0)) if slot_name == "武器" else "+%d生命" % int(item.get("health", 0))
-            lines.append("%s [%s] %s" % [str(item.get("name", "装备")), slot_name, bonus])
+            var quality_label := str(item.get("quality", "common"))
+            lines.append("[%s] %s [%s] %s" % [quality_label, str(item.get("name", "装备")), slot_name, bonus])
     lines.append("")
     lines.append("金币：%d    生命药剂：%d" % [int(_player.get("gold")), int(_player.get("potions"))])
     _inventory_text.text = "\n".join(lines)

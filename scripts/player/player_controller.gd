@@ -254,11 +254,13 @@ func equip_best(slot: String) -> bool:
     var best_value := -1.0
     var current: Dictionary = equipment.get(slot, {})
     var current_value := float(current.get("attack", 0)) if slot == "weapon" else float(current.get("health", 0))
+    current_value += float(current.get("quality_rank", 0)) * 0.01
     for index in range(inventory.size()):
         var item: Dictionary = inventory[index]
         if str(item.get("slot", "")) != slot:
             continue
         var value := float(item.get("attack", 0)) if slot == "weapon" else float(item.get("health", 0))
+        value += float(item.get("quality_rank", 0)) * 0.01
         if value > current_value and value > best_value:
             best_value = value
             best_index = index
