@@ -114,11 +114,21 @@ func _spawn_equipment_drop(pos: Vector2) -> void:
         quality = "fine"
         rank = 2
     var multiplier := [1.0, 1.0, 1.18, 1.42, 1.78, 2.35][rank]
-    var item: Dictionary
-    if randf() < 0.58:
-        item = {"name": "林地短刃", "slot": "weapon", "attack": roundi(randi_range(2, 5) * multiplier), "health": 0}
-    else:
-        item = {"name": "巡林皮甲", "slot": "armor", "attack": 0, "health": roundi(randi_range(12, 28) * multiplier)}
+    var slot_pool := ["weapon", "helmet", "necklace", "bracelet", "ring", "armor", "belt", "boots"]
+    var slot := slot_pool[randi_range(0, slot_pool.size() - 1)]
+    var slot_names := {"weapon":"林地短刃", "helmet":"巡林者头盔", "necklace":"月影项链", "bracelet":"藤纹手镯", "ring":"猎手指环", "armor":"巡林皮甲", "belt":"荒野腰带", "boots":"踏风长靴"}
+    var primary_stats := {"weapon":"attack", "helmet":"defense", "necklace":"critical_chance", "bracelet":"attack_speed", "ring":"attack_speed", "armor":"health", "belt":"defense", "boots":"defense"}
+    var stat_ranges := {"attack":[2,5], "health":[12,28], "defense":[1,3], "critical_chance":[1,3], "attack_speed":[1,3]}
+    var stat := str(primary_stats[slot])
+    var limits: Array = stat_ranges[stat]
+    var item: Dictionary = {"name":slot_names[slot], "slot":slot, "attack":0, "health":0, "defense":0, "critical_chance":0, "attack_speed":0}
+    item[stat] = roundi(randi_range(int(limits[0]), int(limits[1])) * multiplier)
+    if rank >= 3:
+        var affix_stats := ["attack", "health", "defense", "critical_chance", "attack_speed"]
+        affix_stats.erase(stat)
+        var affix := str(affix_stats[randi_range(0, affix_stats.size() - 1)])
+        var affix_limits: Array = stat_ranges[affix]
+        item[affix] = roundi(randi_range(int(affix_limits[0]), int(affix_limits[1])) * multiplier * 0.55)
     var quality_names := {"common":"普通", "fine":"优秀", "rare":"稀有", "epic":"史诗", "legendary":"传说"}
     item["quality"] = quality
     item["quality_rank"] = rank
@@ -224,15 +234,19 @@ func _attack_current_target() -> void:
         return
     var player := get_tree().get_first_node_in_group("player")
     var damage := 18.0
+    var critical_chance := 0.12
+    var speed_multiplier := 1.0
     if is_instance_valid(player):
         damage = float(player.get("attack_power"))
-    var critical := randf() < 0.12
+        critical_chance = float(player.get("critical_chance"))
+        speed_multiplier = float(player.get("attack_speed_multiplier"))
+    var critical := randf() < critical_chance
     if critical:
         damage *= 1.8
     if current_target.has_method("take_damage"):
         current_target.take_damage(damage)
         _spawn_combat_effect(current_target.global_position, "slash", str(roundi(damage)), critical)
-    _attack_timer = attack_interval
+    _attack_timer = attack_interval / maxf(speed_multiplier, 0.1)
     if not is_instance_valid(current_target):
         target_changed.emit(null)
 

@@ -25,7 +25,8 @@ var potions: int = 0
 var class_id: String = "warrior"
 var discovered_regions: Array[String] = ["village"]
 var inventory: Array[Dictionary] = []
-var equipment: Dictionary = {"weapon": {}, "armor": {}}
+const EQUIPMENT_SLOTS := ["weapon", "helmet", "necklace", "bracelet", "ring", "armor", "belt", "boots"]
+var equipment: Dictionary = {"weapon": {}, "helmet": {}, "necklace": {}, "bracelet": {}, "ring": {}, "armor": {}, "belt": {}, "boots": {}}
 var _experience_required: int = 100
 var _spawn_position: Vector2
 var _is_dead: bool = false
@@ -36,15 +37,14 @@ var _path_recalc_timer: float = 0.0
 
 var max_health: float:
     get:
-        var armor: Dictionary = equipment.get("armor", {})
         var class_health := 135.0 if class_id == "warrior" else (88.0 if class_id == "mage" else 108.0)
-        return class_health + float(armor.get("health", 0)) + (level - 1) * 12.0
+        return class_health + _equipment_stat("health") + (level - 1) * 12.0
 
 var attack_power: float:
     get:
         var weapon: Dictionary = equipment.get("weapon", {})
         var class_attack := 18.0 if class_id == "warrior" else (15.0 if class_id == "mage" else 16.0)
-        return class_attack + float(weapon.get("attack", 0)) + (level - 1) * 2.0
+        return class_attack + _equipment_stat("attack") + (level - 1) * 2.0
 
 var attack_range: float:
     get:
@@ -52,7 +52,30 @@ var attack_range: float:
 
 var defense_multiplier: float:
     get:
-        return 0.72 if class_id == "warrior" else (1.12 if class_id == "mage" else 0.90)
+        var class_factor := 0.72 if class_id == "warrior" else (1.12 if class_id == "mage" else 0.90)
+        return maxf(0.35, class_factor - _equipment_stat("defense") * 0.006)
+
+var critical_chance: float:
+    get:
+        return clampf(0.12 + _equipment_stat("critical_chance") / 100.0, 0.0, 0.60)
+
+var attack_speed_multiplier: float:
+    get:
+        return clampf(1.0 + _equipment_stat("attack_speed") / 100.0, 0.65, 1.8)
+
+func _equipment_stat(stat_name: String) -> float:
+    var total := 0.0
+    for slot in EQUIPMENT_SLOTS:
+        var item: Dictionary = equipment.get(slot, {})
+        total += float(item.get(stat_name, 0.0))
+    return total
+
+func get_equipment_score(item: Dictionary) -> float:
+    return float(item.get("attack", 0)) * 4.0 + float(item.get("health", 0)) * 0.45 + float(item.get("defense", 0)) * 8.0 + float(item.get("critical_chance", 0)) * 12.0 + float(item.get("attack_speed", 0)) * 10.0 + float(item.get("quality_rank", 0)) * 2.0 + float(item.get("upgrade_level", 0)) * 1.5
+
+func get_combat_power() -> int:
+    var score := float(level) * 12.0 + attack_power * 4.0 + max_health * 0.35 + _equipment_stat("defense") * 8.0 + _equipment_stat("critical_chance") * 12.0 + _equipment_stat("attack_speed") * 10.0
+    return roundi(score)
 
 func get_class_name() -> String:
     match class_id:
@@ -195,7 +218,7 @@ func is_region_unlocked(region_id: String) -> bool:
     return discovered_regions.has(region_id)
 
 func upgrade_equipment(slot: String) -> bool:
-    if (slot != "weapon" and slot != "armor") or gold < 50:
+    if not EQUIPMENT_SLOTS.has(slot) or gold < 50:
         return false
     var item: Dictionary = equipment.get(slot, {}).duplicate(true)
     if item.is_empty() or int(item.get("upgrade_level", 0)) >= 5:
@@ -203,10 +226,8 @@ func upgrade_equipment(slot: String) -> bool:
     gold -= 50
     var upgrade_level := int(item.get("upgrade_level", 0)) + 1
     item["upgrade_level"] = upgrade_level
-    if slot == "weapon":
-        item["attack"] = int(item.get("attack", 0)) + 2
-    else:
-        item["health"] = int(item.get("health", 0)) + 12
+    var stat := _primary_stat_for_slot(slot)
+    item[stat] = float(item.get(stat, 0)) + (2.0 if stat == "attack" else (12.0 if stat == "health" else 1.0))
     equipment[slot] = item
     health = minf(health, max_health)
     gold_changed.emit(gold)
@@ -248,20 +269,16 @@ func add_inventory_item(item: Dictionary) -> void:
     save_game()
 
 func equip_best(slot: String) -> bool:
-    if slot != "weapon" and slot != "armor":
+    if not EQUIPMENT_SLOTS.has(slot):
         return false
     var best_index := -1
-    var best_value := -1.0
-    var current: Dictionary = equipment.get(slot, {})
-    var current_value := float(current.get("attack", 0)) if slot == "weapon" else float(current.get("health", 0))
-    current_value += float(current.get("quality_rank", 0)) * 0.01
+    var best_value := get_equipment_score(equipment.get(slot, {}))
     for index in range(inventory.size()):
         var item: Dictionary = inventory[index]
         if str(item.get("slot", "")) != slot:
             continue
-        var value := float(item.get("attack", 0)) if slot == "weapon" else float(item.get("health", 0))
-        value += float(item.get("quality_rank", 0)) * 0.01
-        if value > current_value and value > best_value:
+        var value := get_equipment_score(item)
+        if value > best_value:
             best_value = value
             best_index = index
     if best_index < 0:
@@ -279,14 +296,31 @@ func equip_best(slot: String) -> bool:
     save_game()
     return true
 
+func equip_best_all() -> int:
+    var equipped_count := 0
+    for slot in EQUIPMENT_SLOTS:
+        if equip_best(slot):
+            equipped_count += 1
+    return equipped_count
+
+func _primary_stat_for_slot(slot: String) -> String:
+    match slot:
+        "weapon": return "attack"
+        "armor": return "health"
+        "helmet", "belt", "boots": return "defense"
+        "necklace": return "critical_chance"
+        "bracelet", "ring": return "attack_speed"
+    return "attack"
+
 func get_equipment_summary() -> String:
-    var weapon: Dictionary = equipment.get("weapon", {})
-    var armor: Dictionary = equipment.get("armor", {})
-    return "武器：%s (+%d攻击)\n护甲：%s (+%d生命)\n总攻击：%d  生命上限：%d" % [
-        str(weapon.get("name", "未装备")), int(weapon.get("attack", 0)),
-        str(armor.get("name", "未装备")), int(armor.get("health", 0)),
-        roundi(attack_power), roundi(max_health)
-    ]
+    var lines := PackedStringArray()
+    var labels := {"weapon":"武器", "helmet":"头盔", "necklace":"项链", "bracelet":"手镯", "ring":"戒指", "armor":"衣服", "belt":"腰带", "boots":"鞋子"}
+    for slot in EQUIPMENT_SLOTS:
+        var item: Dictionary = equipment.get(slot, {})
+        lines.append("%s：%s" % [labels[slot], str(item.get("name", "未装备"))])
+    lines.append("攻击 %d · 生命 %d · 防御 %d · 暴击 %.1f%% · 攻速 +%.1f%%" % [roundi(attack_power), roundi(max_health), roundi(_equipment_stat("defense")), critical_chance * 100.0, _equipment_stat("attack_speed")])
+    lines.append("角色战力：%d" % get_combat_power())
+    return "\n".join(lines)
 
 func _begin_respawn() -> void:
     _is_dead = true
@@ -366,10 +400,11 @@ func _load_game() -> void:
     experience = clampi(int(parsed.get("experience", 0)), 0, _experience_required - 1)
     var saved_equipment: Variant = parsed.get("equipment", {})
     if saved_equipment is Dictionary:
-        equipment = {
-            "weapon": saved_equipment.get("weapon", {}),
-            "armor": saved_equipment.get("armor", {})
-        }
+        equipment = {"weapon": {}, "helmet": {}, "necklace": {}, "bracelet": {}, "ring": {}, "armor": {}, "belt": {}, "boots": {}}
+        for slot in EQUIPMENT_SLOTS:
+            var saved_item: Variant = saved_equipment.get(slot, {})
+            if saved_item is Dictionary:
+                equipment[slot] = saved_item.duplicate(true)
     inventory.clear()
     var saved_inventory: Variant = parsed.get("inventory", [])
     if saved_inventory is Array:

@@ -13,6 +13,7 @@ var _inventory_panel: PanelContainer
 var _inventory_text: Label
 var _weapon_button: Button
 var _armor_button: Button
+var _equip_all_button: Button
 var _save_text: Label
 var _region_text: Label
 var _quest_text: Label
@@ -184,6 +185,10 @@ func _build_hud() -> void:
     _armor_button.text = "装备更强护甲"
     _armor_button.pressed.connect(_equip_armor)
     content.add_child(_armor_button)
+    _equip_all_button = Button.new()
+    _equip_all_button.text = "自动穿戴全部部位最佳装备"
+    _equip_all_button.pressed.connect(_equip_all)
+    content.add_child(_equip_all_button)
     var close_button := Button.new()
     close_button.text = "关闭"
     close_button.pressed.connect(_toggle_inventory)
@@ -359,10 +364,16 @@ func _refresh_inventory() -> void:
         lines.append("（空）击败森林劫掠者寻找装备")
     else:
         for item in items:
-            var slot_name := "武器" if str(item.get("slot", "")) == "weapon" else "护甲"
-            var bonus := "+%d攻击" % int(item.get("attack", 0)) if slot_name == "武器" else "+%d生命" % int(item.get("health", 0))
+            var slot_labels := {"weapon":"武器", "helmet":"头盔", "necklace":"项链", "bracelet":"手镯", "ring":"戒指", "armor":"衣服", "belt":"腰带", "boots":"鞋子"}
+            var slot_name := str(slot_labels.get(str(item.get("slot", "")), "其他"))
+            var bonus_parts := PackedStringArray()
+            var stat_labels := {"attack":"攻击", "health":"生命", "defense":"防御", "critical_chance":"暴击%", "attack_speed":"攻速%"}
+            for stat in ["attack", "health", "defense", "critical_chance", "attack_speed"]:
+                var stat_value := float(item.get(stat, 0))
+                if stat_value > 0.0:
+                    bonus_parts.append("+%s%s" % [str(snappedf(stat_value, 0.1)), stat_labels[stat]])
             var quality_label := str(item.get("quality", "common"))
-            lines.append("[%s] %s [%s] %s" % [quality_label, str(item.get("name", "装备")), slot_name, bonus])
+            lines.append("[%s] %s [%s] %s" % [quality_label, str(item.get("name", "装备")), slot_name, " ".join(bonus_parts)])
     lines.append("")
     lines.append("金币：%d    生命药剂：%d" % [int(_player.get("gold")), int(_player.get("potions"))])
     _inventory_text.text = "\n".join(lines)
@@ -376,9 +387,9 @@ func _has_upgrade(slot: String) -> bool:
     var items: Array = _player.get("inventory")
     var gear: Dictionary = _player.get("equipment")
     var equipped: Dictionary = gear.get(slot, {})
-    var current := float(equipped.get("attack", 0)) if slot == "weapon" else float(equipped.get("health", 0))
+    var current := float(_player.call("get_equipment_score", equipped))
     for item in items:
-        var value := float(item.get("attack", 0)) if slot == "weapon" else float(item.get("health", 0))
+        var value := float(_player.call("get_equipment_score", item))
         if str(item.get("slot", "")) == slot and value > current:
             return true
     return false
@@ -389,6 +400,11 @@ func _equip_weapon() -> void:
 
 func _equip_armor() -> void:
     _player.call("equip_best", "armor")
+    _refresh_inventory()
+
+func _equip_all() -> void:
+    var count := int(_player.call("equip_best_all"))
+    _notice_text.text = "已自动穿戴 %d 件更优装备" % count if count > 0 else "当前装备已是最佳搭配"
     _refresh_inventory()
 
 func _on_health_changed(current: float, maximum: float) -> void:
