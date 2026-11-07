@@ -204,6 +204,26 @@ func take_damage(amount: float) -> void:
         queue_free()
 
 func _draw() -> void:
+    if is_instance_valid(_art_sprite) and _art_sprite.texture != null:
+        if _was_targeted:
+            var pulse := 0.62 + 0.22 * sin(_visual_clock * 5.0)
+            draw_arc(Vector2(0, 3), 29.0, 0.0, TAU, 40, Color(1.0, 0.78, 0.32, pulse), 2.6, true)
+            draw_colored_polygon(PackedVector2Array([Vector2(-5,-52),Vector2(0,-61),Vector2(5,-52)]),Color("#f4d27a",pulse))
+        var bar_width := 58.0 if is_boss else 40.0
+        var bar_y := -68.0 if is_boss else -38.0
+        draw_rect(Rect2(-bar_width * 0.5, bar_y, bar_width, 6), Color("#251f1d"))
+        draw_rect(Rect2(-bar_width * 0.5, bar_y, bar_width * clampf(health / maxf(max_health, 1.0), 0.0, 1.0), 6), Color("#d85b4d"))
+        if is_boss:
+            draw_arc(Vector2.ZERO, 43.0 + sin(_visual_clock * 2.0) * 2.0, 0.0, TAU, 48, Color("#a6c36c", 0.24), 3.0, true)
+            if _boss_attack_pending:
+                var warning_alpha := 0.42 + 0.30 * absf(sin(Time.get_ticks_msec() * 0.018))
+                draw_arc(Vector2.ZERO, _boss_telegraph_radius / scale.x, 0.0, TAU, 48, Color(1.0, 0.20, 0.14, warning_alpha), 3.5, true)
+                draw_arc(Vector2.ZERO, (_boss_telegraph_radius / scale.x) * clampf(1.0 - _boss_windup / 0.82, 0.08, 1.0), 0.0, TAU, 48, Color(1.0, 0.62, 0.28, 0.9), 2.0, true)
+            if ThemeDB.fallback_font:
+                draw_string(ThemeDB.fallback_font, Vector2(-62, -78), boss_title, HORIZONTAL_ALIGNMENT_CENTER, 124, 11, Color("#ffd59a"))
+        elif is_elite and ThemeDB.fallback_font:
+            draw_string(ThemeDB.fallback_font, Vector2(-38, -48), elite_title, HORIZONTAL_ALIGNMENT_CENTER, 76, 10, Color("#f5d99a"))
+        return
     if _was_targeted:
         var pulse := 0.62 + 0.22 * sin(_visual_clock * 5.0)
         draw_arc(Vector2(0, 3), 29.0, 0.0, TAU, 40, Color(1.0, 0.78, 0.32, pulse), 2.6, true)

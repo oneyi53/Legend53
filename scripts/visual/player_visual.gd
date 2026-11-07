@@ -15,11 +15,8 @@ func _ready() -> void:
     _refresh_class_art()
 
 func _refresh_class_art() -> void:
-    if is_instance_valid(_art_sprite) and _art_sprite.texture != null:
-        _draw_ellipse(Vector2(0, 15), Vector2(16, 5), Color(0.02, 0.04, 0.03, 0.42))
-        return
     var parent := get_parent()
-    var class_id := str(parent.get("class_id")) if is_instance_valid(parent) else "warrior
+    var class_id := str(parent.get("class_id")) if is_instance_valid(parent) else "warrior"
     if class_id == _last_class:
         return
     _last_class = class_id
@@ -40,6 +37,9 @@ func _process(delta: float) -> void:
     queue_redraw()
 
 func _draw() -> void:
+    _draw_ellipse(Vector2(0, 15), Vector2(16, 5), Color(0.02, 0.04, 0.03, 0.42))
+    if is_instance_valid(_art_sprite) and _art_sprite.texture != null:
+        return
     var parent := get_parent()
     var class_id := str(parent.get("class_id")) if is_instance_valid(parent) else "warrior"
     var moving := is_instance_valid(parent) and parent is CharacterBody2D and parent.velocity.length() > 8.0

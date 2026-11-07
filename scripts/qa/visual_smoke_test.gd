@@ -27,11 +27,21 @@ func _run_visual_checks() -> void:
     var world := scene.get_node_or_null("World")
     var hud := scene.get_node_or_null("HUD")
     var touch_controls := scene.get_node_or_null("HUD/TouchControls")
+    var player_visual := player.get_node_or_null("BodyVisual") if is_instance_valid(player) else null
     if not is_instance_valid(player) or not is_instance_valid(world) or not is_instance_valid(hud) or not is_instance_valid(touch_controls):
         push_error("Visual smoke test: required Player/World/HUD/TouchControls node missing.")
         quit(1)
         return
 
+    if not is_instance_valid(player_visual) or not is_instance_valid(player_visual.get("_art_sprite")) or player_visual.get("_art_sprite").texture == null:
+        push_error("Visual smoke test: original class sprite texture did not load.")
+        quit(1)
+        return
+    var enemy_nodes := scene.get_node("Enemies").get_children()
+    if enemy_nodes.is_empty() or not is_instance_valid(enemy_nodes[0].get("_art_sprite")) or enemy_nodes[0].get("_art_sprite").texture == null:
+        push_error("Visual smoke test: original monster sprite texture did not load.")
+        quit(1)
+        return
     player.global_position = Vector2(360.0, 320.0)
     for _frame in range(12):
         await process_frame
