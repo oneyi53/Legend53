@@ -1,5 +1,5 @@
 const KEY="hero-world-html5-save-v1";
-const SAVE_VERSION=2;
+const SAVE_VERSION=3;
 
 export function loadSave(){
   try{
@@ -7,7 +7,7 @@ export function loadSave(){
     if(!raw)return null;
     const data=JSON.parse(raw);
     if(!data||typeof data!=="object")return null;
-    if(data.version===1)return {...data,version:SAVE_VERSION};
+    if(data.version===1||data.version===2)return {...data,version:SAVE_VERSION};
     return data.version===SAVE_VERSION?data:null;
   }catch(error){
     console.warn("Save data could not be read",error);
