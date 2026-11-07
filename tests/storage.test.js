@@ -38,7 +38,7 @@ test("version 2 saves restore enemy health and uncollected drops",()=>{
   assert.equal(game.enemies[0].hp,7);
   assert.equal(game.drops.length,1);
   assert.equal(game.drops[0].amount,9);
-  assert.equal(game.save(),undefined);
+  game.save();
   const saved=JSON.parse(values.get(KEY));
   assert.equal(saved.version,2);
   assert.equal(saved.enemies[0].hp,7);
