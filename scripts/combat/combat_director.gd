@@ -79,11 +79,12 @@ func _on_enemy_defeated(enemy: Node2D) -> void:
     if enemy.is_boss:
         if is_instance_valid(player):
             player.add_experience(250)
-            player.add_inventory_item({"name":"传说·古树守护者之刃","slot":"weapon","attack":18,"health":0,"quality":"legendary","quality_rank":5})
-            player.add_inventory_item({"name":"传说·远古树皮甲","slot":"armor","attack":0,"health":90,"quality":"legendary","quality_rank":5})
-        loot_message.emit("腐化古树已击败！获得首领奖励")
+            player.add_inventory_item({"item_id":"boss_corrupted_tree_blade","name":"传说·古树守护者之刃","slot":"weapon","attack":22,"health":0,"quality":"legendary","quality_rank":5,"drop_source":"腐化古树首领"})
+            player.add_inventory_item({"item_id":"boss_ancient_bark_armor","name":"传说·远古树皮甲","slot":"armor","attack":0,"health":110,"defense":2,"quality":"legendary","quality_rank":5,"drop_source":"腐化古树首领"})
+            player.add_inventory_item({"item_id":"boss_corruption_core","name":"传说·腐化核心坠饰","slot":"necklace","attack":0,"health":35,"critical_chance":5,"quality":"legendary","quality_rank":5,"drop_source":"腐化古树首领"})
+        loot_message.emit("腐化古树已击败！获得专属传说装备与首领图鉴")
     elif enemy.is_elite or randf() <= equipment_drop_chance:
-        _spawn_equipment_drop(enemy.global_position)
+        _spawn_equipment_drop(enemy.global_position, enemy)
     if enemy.is_elite:
         loot_message.emit("精英怪击败！额外经验与金币已获得")
     if current_target == enemy:
@@ -97,8 +98,19 @@ func _spawn_experience_drop(pos: Vector2) -> void:
     get_tree().current_scene.add_child(drop)
     drop.connect("collected", Callable(self, "_on_experience_collected"))
 
-func _spawn_equipment_drop(pos: Vector2) -> void:
+func _spawn_equipment_drop(pos: Vector2, enemy: Node2D) -> void:
+    var zone_id := str(enemy.get("zone_name"))
+    if zone_id == "遗忘祭坛":
+        zone_id = "clearing"
+    if zone_id not in ["entrance", "deepwood", "ruins", "clearing"]:
+        zone_id = "entrance"
+    var set_id := "forest" if zone_id in ["entrance", "deepwood"] else "ruins"
+    var set_names := {"forest":"林地守望", "ruins":"遗迹征服者"}
+    var region_names := {"entrance":"林间入口", "deepwood":"幽暗密林", "ruins":"古代遗迹", "clearing":"遗忘祭坛"}
+    var region_prefixes := {"entrance":"林间", "deepwood":"幽暗", "ruins":"遗迹", "clearing":"祭坛"}
     var roll := randf()
+    # Progressively better areas and elite enemies improve the quality roll.
+    roll = minf(0.999, roll + (0.08 if zone_id == "deepwood" else (0.14 if zone_id == "ruins" else (0.20 if zone_id == "clearing" else 0.0))) + (0.12 if enemy.is_elite else 0.0))
     var quality := "common"
     var rank := 1
     if roll >= 0.995:
@@ -114,22 +126,22 @@ func _spawn_equipment_drop(pos: Vector2) -> void:
         quality = "fine"
         rank = 2
     var multiplier := [1.0, 1.0, 1.18, 1.42, 1.78, 2.35][rank]
+    var region_multiplier := 1.0 + (0.12 if zone_id == "deepwood" else (0.22 if zone_id == "ruins" else (0.35 if zone_id == "clearing" else 0.0)))
+    multiplier *= region_multiplier
     var slot_pool := ["weapon", "helmet", "necklace", "bracelet", "ring", "armor", "belt", "boots"]
-    var slot := slot_pool[randi_range(0, slot_pool.size() - 1)]
-    var slot_names := {"weapon":"林地短刃", "helmet":"巡林者头盔", "necklace":"月影项链", "bracelet":"藤纹手镯", "ring":"猎手指环", "armor":"巡林皮甲", "belt":"荒野腰带", "boots":"踏风长靴"}
+    var slot := str(slot_pool[randi_range(0, slot_pool.size() - 1)])
     var primary_stats := {"weapon":"attack", "helmet":"defense", "necklace":"critical_chance", "bracelet":"attack_speed", "ring":"attack_speed", "armor":"health", "belt":"defense", "boots":"defense"}
     var stat_ranges := {"attack":[2,5], "health":[12,28], "defense":[1,3], "critical_chance":[1,3], "attack_speed":[1,3]}
-    var stat := str(primary_stats[slot])
-    var set_id := "forest" if randf() < 0.5 else "ruins"
-    var set_names := {"forest":"林地守望", "ruins":"遗迹征服者"}
     var set_piece_names := {
         "forest":{"weapon":"守望者短刃","helmet":"守望者头盔","necklace":"守望者坠饰","bracelet":"守望者护腕","ring":"守望者指环","armor":"守望者轻甲","belt":"守望者腰带","boots":"守望者长靴"},
         "ruins":{"weapon":"遗迹裁决者","helmet":"遗迹石盔","necklace":"古文明项链","bracelet":"符文护腕","ring":"符文戒指","armor":"遗迹胸甲","belt":"遗迹束带","boots":"遗迹行靴"}
     }
+    var stat := str(primary_stats[slot])
     var limits: Array = stat_ranges[stat]
-    var item: Dictionary = {"name":str(set_piece_names[set_id][slot]), "slot":slot, "set_id":set_id, "set_name":str(set_names[set_id]), "item_id":"%s_%s" % [set_id, slot], "attack":0, "health":0, "defense":0, "critical_chance":0, "attack_speed":0}
+    var item_id := "%s_%s_%s" % [set_id, zone_id, slot]
+    var item: Dictionary = {"name":"%s·%s" % [str(region_prefixes[zone_id]), str(set_piece_names[set_id][slot])], "slot":slot, "set_id":set_id, "set_name":str(set_names[set_id]), "item_id":item_id, "drop_source":str(region_names[zone_id]), "attack":0, "health":0, "defense":0, "critical_chance":0, "attack_speed":0}
     item[stat] = roundi(randi_range(int(limits[0]), int(limits[1])) * multiplier)
-    if rank >= 3:
+    if rank >= 3 or zone_id in ["ruins", "clearing"]:
         var affix_stats := ["attack", "health", "defense", "critical_chance", "attack_speed"]
         affix_stats.erase(stat)
         var affix := str(affix_stats[randi_range(0, affix_stats.size() - 1)])

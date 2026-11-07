@@ -113,11 +113,9 @@ func get_set_bonus_summary() -> String:
     return "\n".join(lines)
 
 func get_collection_summary() -> String:
-    var total := 0
-    for set_id in ["forest", "ruins"]:
-        for slot in EQUIPMENT_SLOTS:
-            if int(collected_gear.get("%s_%s" % [set_id, slot], 0)) > 0: total += 1
-    return "装备图鉴：%d / 16 件已发现" % total
+    # 4 exploration regions × 2 themed sets × 8 slots, plus 3 boss relics.
+    # Count unique discovered IDs so old saves and legacy set IDs remain valid.
+    return "装备图鉴：%d / 35 件已发现" % mini(collected_gear.size(), 35)
 func get_class_name() -> String:
     match class_id:
         "mage": return "法师"

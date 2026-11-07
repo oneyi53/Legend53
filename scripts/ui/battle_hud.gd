@@ -373,7 +373,8 @@ func _refresh_inventory() -> void:
                 if stat_value > 0.0:
                     bonus_parts.append("+%s%s" % [str(snappedf(stat_value, 0.1)), stat_labels[stat]])
             var quality_label := str(item.get("quality", "common"))
-            lines.append("[%s] %s [%s] %s" % [quality_label, str(item.get("name", "装备")), slot_name, " ".join(bonus_parts)])
+            var source_label := str(item.get("drop_source", ""))
+            lines.append("[%s] %s [%s] %s%s" % [quality_label, str(item.get("name", "装备")), slot_name, " ".join(bonus_parts), " · 来源：" + source_label if not source_label.is_empty() else ""])
     lines.append("")
     lines.append("套装效果与收集进度：")
     lines.append(str(_player.call("get_set_bonus_summary")))
