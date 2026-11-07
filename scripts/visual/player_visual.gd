@@ -12,6 +12,13 @@ func _ready() -> void:
     _art_sprite.scale = Vector2(0.34, 0.34)
     _art_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
     add_child(_art_sprite)
+    var gear_overlay := Node2D.new()
+    gear_overlay.name = "GearOverlay"
+    gear_overlay.position = Vector2(0, -8)
+    gear_overlay.scale = Vector2(0.34, 0.34)
+    gear_overlay.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+    gear_overlay.set_script(load("res://scripts/visual/gear_visual_overlay.gd"))
+    add_child(gear_overlay)
     _refresh_class_art()
 
 func _refresh_class_art() -> void:
