@@ -83,7 +83,7 @@ func _on_enemy_defeated(enemy: Node2D) -> void:
             player.add_inventory_item({"item_id":"boss_ancient_bark_armor","name":"传说·远古树皮甲","slot":"armor","attack":0,"health":110,"defense":2,"quality":"legendary","quality_rank":5,"drop_source":"腐化古树首领"})
             player.add_inventory_item({"item_id":"boss_corruption_core","name":"传说·腐化核心坠饰","slot":"necklace","attack":0,"health":35,"critical_chance":5,"quality":"legendary","quality_rank":5,"drop_source":"腐化古树首领"})
         loot_message.emit("腐化古树已击败！获得专属传说装备与首领图鉴")
-    elif enemy.is_elite or randf() <= equipment_drop_chance:
+    elif enemy.is_elite or randf() <= _equipment_drop_chance_for_enemy(enemy):
         _spawn_equipment_drop(enemy.global_position, enemy)
     if enemy.is_elite:
         loot_message.emit("精英怪击败！额外经验与金币已获得")
@@ -97,6 +97,17 @@ func _spawn_experience_drop(pos: Vector2) -> void:
     drop.global_position = pos + Vector2(-18, 0)
     get_tree().current_scene.add_child(drop)
     drop.connect("collected", Callable(self, "_on_experience_collected"))
+
+func _equipment_drop_chance_for_enemy(enemy: Node2D) -> float:
+    var zone_id := str(enemy.get("zone_name"))
+    if zone_id == "遗忘祭坛":
+        zone_id = "clearing"
+    var region_bonus := 0.0
+    match zone_id:
+        "deepwood": region_bonus = 0.08
+        "ruins": region_bonus = 0.12
+        "clearing": region_bonus = 0.16
+    return clampf(equipment_drop_chance + region_bonus, 0.0, 0.75)
 
 func _spawn_equipment_drop(pos: Vector2, enemy: Node2D) -> void:
     var zone_id := str(enemy.get("zone_name"))
@@ -125,6 +136,9 @@ func _spawn_equipment_drop(pos: Vector2, enemy: Node2D) -> void:
     elif roll >= 0.58:
         quality = "fine"
         rank = 2
+    # Elite enemies always guarantee at least rare-quality equipment.
+    if enemy.is_elite:
+        rank = maxi(rank, 3)
     var multiplier := [1.0, 1.0, 1.18, 1.42, 1.78, 2.35][rank]
     var region_multiplier := 1.0 + (0.12 if zone_id == "deepwood" else (0.22 if zone_id == "ruins" else (0.35 if zone_id == "clearing" else 0.0)))
     multiplier *= region_multiplier
@@ -139,7 +153,13 @@ func _spawn_equipment_drop(pos: Vector2, enemy: Node2D) -> void:
     var stat := str(primary_stats[slot])
     var limits: Array = stat_ranges[stat]
     var item_id := "%s_%s_%s" % [set_id, zone_id, slot]
-    var item: Dictionary = {"name":"%s·%s" % [str(region_prefixes[zone_id]), str(set_piece_names[set_id][slot])], "slot":slot, "set_id":set_id, "set_name":str(set_names[set_id]), "item_id":item_id, "drop_source":str(region_names[zone_id]), "attack":0, "health":0, "defense":0, "critical_chance":0, "attack_speed":0}
+    var source_name := str(region_names[zone_id])
+    var item_name := "%s·%s" % [str(region_prefixes[zone_id]), str(set_piece_names[set_id][slot])]
+    if enemy.is_elite:
+        var elite_title := str(enemy.get("elite_title"))
+        item_name = "精英战利品·%s·%s" % [elite_title, item_name]
+        source_name += "·" + elite_title + "精英"
+    var item: Dictionary = {"name":item_name, "slot":slot, "set_id":set_id, "set_name":str(set_names[set_id]), "item_id":item_id, "drop_source":source_name, "elite_type":str(enemy.get("elite_type")) if enemy.is_elite else "", "attack":0, "health":0, "defense":0, "critical_chance":0, "attack_speed":0}
     item[stat] = roundi(randi_range(int(limits[0]), int(limits[1])) * multiplier)
     if rank >= 3 or zone_id in ["ruins", "clearing"]:
         var affix_stats := ["attack", "health", "defense", "critical_chance", "attack_speed"]
