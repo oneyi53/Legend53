@@ -16,13 +16,34 @@ export class Game{
   get klass(){return CLASSES[this.classId]} get maxHp(){return this.klass.maxHp+(this.level-1)*12+this.stat("health")} get attack(){return this.klass.attack+(this.level-1)*2+this.stat("attack")} get defense(){return this.klass.defense} get power(){return Math.round(this.level*12+this.attack*4+this.maxHp*.35+this.stat("defense")*8)}
   stat(key){return Object.values(this.equipment).reduce((n,item)=>n+(item?.[key]||0),0)}
   spawnInitial(){const spots=[[380,500],[520,540],[310,680],[590,730],[400,900],[570,1020],[330,1130],[520,1260]];spots.forEach((p,i)=>{const type=i===5?{...ENEMIES[2],elite:true}:i%3===2?ENEMIES[1]:ENEMIES[0];this.enemies.push(this.makeEnemy(type,p[0],p[1]))});}
-  makeEnemy(type,x,y){return {...type,x,y,hp:type.hp,hpMax:type.hp,attackTimer:rand(0,10)/10,phase:Math.random()*6,alive:true}}
+  makeEnemy(type,x,y){return {...type,x,y,homeX:x,homeY:y,hp:type.hp,hpMax:type.hp,attackTimer:rand(0,10)/10,phase:Math.random()*6,alive:true,respawnTimer:0}}
   update(dt,input){
     this.clock+=dt;this.autosaveTimer+=dt;if(this.autosaveTimer>=8){this.autosaveTimer=0;writeSave(this)}this.player.attackTimer=Math.max(0,this.player.attackTimer-dt);this.player.skillTimer=Math.max(0,this.player.skillTimer-dt);this.player.flash=Math.max(0,this.player.flash-dt);
     const d=input.getDirection();if(Math.hypot(d.x,d.y)>.08){this.player.x=clamp(this.player.x+d.x*220*dt,38,862);this.player.y=clamp(this.player.y+d.y*220*dt,70,1480);this.target=null}
     this.updateRegion();
-    for(const e of this.enemies){if(!e.alive)continue;e.phase+=dt;const dist=this.distance(this.player,e);if(this.player.y<390){e.attackTimer=Math.max(0,e.attackTimer-dt);continue}
-      if(dist<290&&dist>37){e.x+=(this.player.x-e.x)/dist*e.speed*dt;e.y+=(this.player.y-e.y)/dist*e.speed*dt}
+    for(const e of this.enemies){
+      if(!e.alive){
+        if(e.respawnTimer>0){
+          e.respawnTimer=Math.max(0,e.respawnTimer-dt);
+          if(e.respawnTimer===0){
+            e.alive=true;e.hp=e.hpMax;e.x=e.homeX??e.x;e.y=e.homeY??e.y;e.attackTimer=.6;e.phase=Math.random()*6;
+          }
+        }
+        continue;
+      }
+      e.phase+=dt;
+      const dist=this.distance(this.player,e);
+      if(this.player.y<390){e.attackTimer=Math.max(0,e.attackTimer-dt);continue}
+      if(dist<290&&dist>37){
+        e.x+=(this.player.x-e.x)/dist*e.speed*dt;
+        e.y+=(this.player.y-e.y)/dist*e.speed*dt;
+      }else if(dist>360){
+        const homeDist=Math.hypot((e.homeX??e.x)-e.x,(e.homeY??e.y)-e.y);
+        if(homeDist>3){
+          e.x+=((e.homeX??e.x)-e.x)/homeDist*e.speed*1.25*dt;
+          e.y+=((e.homeY??e.y)-e.y)/homeDist*e.speed*1.25*dt;
+        }
+      }
       if(dist<43&&e.attackTimer<=0){this.takeDamage(e.attack);e.attackTimer=e.boss?1.45:1.25}else e.attackTimer-=dt;
     }
     if(this.auto){if(!this.target||!this.target.alive)this.target=this.nearest(this.klass.range+180);if(this.target){const dist=this.distance(this.player,this.target);if(dist>this.klass.range){const dx=(this.target.x-this.player.x)/dist,dy=(this.target.y-this.player.y)/dist;this.player.x+=dx*150*dt;this.player.y+=dy*150*dt}else this.basicAttack()}}
@@ -37,7 +58,7 @@ export class Game{
   castSkill(){if(this.player.skillTimer>0){this.toast("技能冷却中");return}const c=this.klass;this.player.skillTimer=c.skillCooldown;this.effects.push({x:this.player.x,y:this.player.y,life:.55,max:.55,type:"skill"});if(this.classId==="taoist"){const healed=Math.min(this.maxHp-this.hp,Math.round(this.maxHp*.28));this.hp+=healed;this.toast("灵符治疗 +" + healed);return}
     const targets=this.enemies.filter(e=>e.alive&&this.distance(this.player,e)<(this.classId==="warrior"?145:260));if(!targets.length){this.toast("技能已释放");return}for(const e of targets){const dmg=Math.round(this.attack*c.skillPower*(1+this.skillLevel*.12));e.hp-=dmg;this.damageTexts.push({x:e.x,y:e.y-35,text:String(dmg),life:.9});if(e.hp<=0)this.defeat(e)}this.toast(c.skill+" 命中 "+targets.length+" 个目标")}
   takeDamage(amount){const real=Math.max(1,Math.round(amount*this.defense)-this.stat("defense"));this.hp-=real;this.player.flash=.2;this.damageTexts.push({x:this.player.x,y:this.player.y-48,text:"-"+real,life:.7});if(this.hp<=0){this.hp=1;this.player.x=450;this.player.y=330;this.auto=false;this.toast("你已返回新手村，生命恢复");this.hp=this.maxHp}}
-  defeat(e){if(!e.alive)return;e.alive=false;this.kills++;if(this.questAccepted&&!this.questClaimed&&!e.boss)this.questKills++;this.gainExp(e.xp);const gold=rand(...e.gold);this.drops.push({x:e.x+15,y:e.y,type:"gold",amount:gold,label:"金币 +"+gold});if(Math.random()<.35||e.elite)this.drops.push({x:e.x-12,y:e.y+8,type:"gear",item:GEAR[rand(0,GEAR.length-1)],label:"发现装备"});if(e.boss){this.drops.push({x:e.x,y:e.y,type:"gear",item:GEAR[3],label:"获得传说装备"});this.toast("腐化古树被击败！")}else this.toast(e.elite?"精英怪已击败":"怪物已击败");this.target=null;this.onChange()}
+  defeat(e){if(!e.alive)return;e.alive=false;e.respawnTimer=e.boss?90:e.elite?42:24;this.kills++;if(this.questAccepted&&!this.questClaimed&&!e.boss)this.questKills++;this.gainExp(e.xp);const gold=rand(...e.gold);this.drops.push({x:e.x+15,y:e.y,type:"gold",amount:gold,label:"金币 +"+gold});if(Math.random()<.35||e.elite)this.drops.push({x:e.x-12,y:e.y+8,type:"gear",item:GEAR[rand(0,GEAR.length-1)],label:"发现装备"});if(e.boss){this.drops.push({x:e.x,y:e.y,type:"gear",item:GEAR[3],label:"获得传说装备"});this.toast("腐化古树被击败！")}else this.toast(e.elite?"精英怪已击败":"怪物已击败");this.target=null;this.onChange()}
   gainExp(amount){this.exp+=amount;while(this.exp>=this.level*100){this.exp-=this.level*100;this.level++;this.skillPoints++;this.hp=this.maxHp;this.toast("等级提升！当前等级 "+this.level+" · 获得技能点") }}
   switchClass(nextId){if(!CLASSES[nextId]||nextId===this.classId)return false;const ratio=this.hp/this.maxHp;this.classId=nextId;this.hp=Math.max(1,Math.round(this.maxHp*ratio));this.toast("已切换职业："+this.klass.name);return true}
   upgradeSkill(){if(this.skillPoints<=0||this.skillLevel>=5)return false;this.skillPoints--;this.skillLevel++;this.toast("技能提升至 "+this.skillLevel+" 级");return true}
