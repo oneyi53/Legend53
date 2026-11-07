@@ -157,7 +157,7 @@ func _build_hud() -> void:
     root.add_child(_npc_button)
     _inventory_panel = PanelContainer.new()
     _inventory_panel.position = Vector2(24, 312)
-    _inventory_panel.size = Vector2(420, 860)
+    _inventory_panel.size = Vector2(420, 760)
     _inventory_panel.visible = false
     _inventory_panel.mouse_filter = Control.MOUSE_FILTER_STOP
     root.add_child(_inventory_panel)
@@ -171,10 +171,16 @@ func _build_hud() -> void:
     _class_button.text = "切换职业"
     _class_button.pressed.connect(_cycle_class)
     content.add_child(_class_button)
+    var inventory_scroll := ScrollContainer.new()
+    inventory_scroll.custom_minimum_size = Vector2(380, 390)
+    inventory_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    inventory_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    content.add_child(inventory_scroll)
     _inventory_text = Label.new()
-    _inventory_text.custom_minimum_size = Vector2(380, 360)
+    _inventory_text.custom_minimum_size = Vector2(380, 520)
+    _inventory_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     _inventory_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-    content.add_child(_inventory_text)
+    inventory_scroll.add_child(_inventory_text)
     _potion_button = Button.new()
     _potion_button.text = "使用生命药剂（恢复60）"
     _potion_button.pressed.connect(_use_potion)
