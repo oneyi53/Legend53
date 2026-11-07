@@ -1,4 +1,4 @@
-import {CLASSES,REGIONS,ENEMIES,GEAR} from "./data.js";
+import {CLASSES,REGIONS,ENEMIES,GEAR,NPCS,MAIN_QUEST} from "./data.js";
 import {loadSave,writeSave} from "./storage.js";
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const rand=(a,b)=>Math.floor(a+Math.random()*(b-a+1));
@@ -21,7 +21,7 @@ export class Game{
   constructor(){
     const saved=loadSave();this.classId=saved?.classId||"warrior";this.level=saved?.level||1;this.exp=saved?.exp||0;this.gold=saved?.gold??100;this.potions=saved?.potions??3;this.inventory=saved?.inventory||[];this.equipment=saved?.equipment||{};
     this.hp=saved?.hp??this.maxHp;this.player={x:saved?.x??450,y:saved?.y??330,attackTimer:0,skillTimer:0,flash:0};
-    this.kills=saved?.kills||0;this.questKills=saved?.questKills||0;this.skillPoints=saved?.skillPoints||0;this.questAccepted=saved?.questAccepted||false;this.questClaimed=saved?.questClaimed||false;this.skillLevel=saved?.skillLevel||1;this.region="village";this.auto=false;this.target=null;this.drops=[];this.effects=[];this.damageTexts=[];this.enemies=[];this.clock=0;this.autosaveTimer=0;this.notice="";this.noticeTime=0;this.onChange=()=>{};
+    this.kills=saved?.kills||0;this.questKills=saved?.questKills||0;this.skillPoints=saved?.skillPoints||0;this.questAccepted=saved?.questAccepted||false;this.questClaimed=saved?.questClaimed||false;this.skillLevel=saved?.skillLevel||1;this.region="village";this.auto=false;this.target=null;this.drops=[];this.effects=[];this.damageTexts=[];this.enemies=[];this.clock=0;this.autosaveTimer=0;this.notice="";this.noticeTime=0;this.activeNpcId=null;this.onChange=()=>{};
     const restoredEnemies=Array.isArray(saved?.enemies)?saved.enemies.filter(e=>e&&typeof e.id==="string"&&Number.isFinite(e.x)&&Number.isFinite(e.y)&&Number.isFinite(e.hp)&&Number.isFinite(e.hpMax)):null;
     if(restoredEnemies)this.enemies=restoredEnemies.map(e=>({...e,regionId:e.regionId||REGIONS.find(r=>e.y>=r.minY&&e.y<r.maxY)?.id||"village",alive:e.alive!==false,active:false,attackTimer:Math.max(0,Number(e.attackTimer)||0),phase:Number(e.phase)||0}));
     this.drops=Array.isArray(saved?.drops)?saved.drops.filter(d=>d&&Number.isFinite(d.x)&&Number.isFinite(d.y)&&typeof d.type==="string"):[];
@@ -88,15 +88,34 @@ export class Game{
   castSkill(){if(this.player.skillTimer>0){this.toast("技能冷却中");return}const c=this.klass;this.player.skillTimer=c.skillCooldown;this.effects.push({x:this.player.x,y:this.player.y,life:.55,max:.55,type:"skill"});if(this.classId==="taoist"){const healed=Math.min(this.maxHp-this.hp,Math.round(this.maxHp*.28));this.hp+=healed;this.toast("灵符治疗 +" + healed);return}
     const targets=this.enemies.filter(e=>e.alive&&e.active&&this.distance(this.player,e)<(this.classId==="warrior"?145:260));if(!targets.length){this.toast("技能已释放");return}for(const e of targets){const dmg=Math.round(this.attack*c.skillPower*(1+this.skillLevel*.12));e.hp-=dmg;this.damageTexts.push({x:e.x,y:e.y-35,text:String(dmg),life:.9});if(e.hp<=0)this.defeat(e)}this.toast(c.skill+" 命中 "+targets.length+" 个目标")}
   takeDamage(amount){const real=Math.max(1,Math.round(amount*this.defense)-this.stat("defense"));this.hp-=real;this.player.flash=.2;this.damageTexts.push({x:this.player.x,y:this.player.y-48,text:"-"+real,life:.7});if(this.hp<=0){this.hp=1;this.player.x=450;this.player.y=330;this.auto=false;this.toast("你已返回新手村，生命恢复");this.hp=this.maxHp}}
-  defeat(e){if(!e.alive)return;e.alive=false;e.respawnTimer=e.boss?90:e.elite?42:24;this.kills++;if(this.questAccepted&&!this.questClaimed&&e.id==="forest_beast")this.questKills++;this.gainExp(e.xp);const gold=rand(...e.gold);this.drops.push({x:e.x+15,y:e.y,type:"gold",amount:gold,label:"金币 +"+gold});if(Math.random()<.35||e.elite)this.drops.push({x:e.x-12,y:e.y+8,type:"gear",item:GEAR[rand(0,GEAR.length-1)],label:"发现装备"});if(e.boss){this.drops.push({x:e.x,y:e.y,type:"gear",item:GEAR[3],label:"获得传说装备"});this.toast("腐化古树被击败！")}else this.toast(e.elite?"精英怪已击败":"怪物已击败");this.target=null;this.onChange()}
+  defeat(e){if(!e.alive)return;e.alive=false;e.respawnTimer=e.boss?90:e.elite?42:24;this.kills++;if(this.questAccepted&&!this.questClaimed&&e.id===MAIN_QUEST.targetEnemyId)this.questKills=Math.min(MAIN_QUEST.targetCount,this.questKills+1);this.gainExp(e.xp);const gold=rand(...e.gold);this.drops.push({x:e.x+15,y:e.y,type:"gold",amount:gold,label:"金币 +"+gold});if(Math.random()<.35||e.elite)this.drops.push({x:e.x-12,y:e.y+8,type:"gear",item:GEAR[rand(0,GEAR.length-1)],label:"发现装备"});if(e.boss){this.drops.push({x:e.x,y:e.y,type:"gear",item:GEAR[3],label:"获得传说装备"});this.toast("腐化古树被击败！")}else this.toast(e.elite?"精英怪已击败":"怪物已击败");this.target=null;this.onChange()}
   gainExp(amount){this.exp+=amount;while(this.exp>=this.level*100){this.exp-=this.level*100;this.level++;this.skillPoints++;this.hp=this.maxHp;this.toast("等级提升！当前等级 "+this.level+" · 获得技能点") }}
   switchClass(nextId){if(!CLASSES[nextId]||nextId===this.classId)return false;const ratio=this.hp/this.maxHp;this.classId=nextId;this.hp=Math.max(1,Math.round(this.maxHp*ratio));this.toast("已切换职业："+this.klass.name);return true}
   upgradeSkill(){if(this.skillPoints<=0||this.skillLevel>=5)return false;this.skillPoints--;this.skillLevel++;this.toast("技能提升至 "+this.skillLevel+" 级");return true}
   usePotion(){if(this.potions<=0){this.toast("药水不足");return}if(this.hp>=this.maxHp){this.toast("生命值已满");return}this.potions--;const heal=Math.round(this.maxHp*.45);this.hp=Math.min(this.maxHp,this.hp+heal);this.toast("恢复生命 +"+heal)}
   toggleAuto(){this.auto=!this.auto;this.toast(this.auto?"自动战斗已开启":"自动战斗已关闭")}
   updateRegion(){const r=REGIONS.find(x=>this.player.y>=x.minY&&this.player.y<x.maxY)||REGIONS[0];if(r.id!==this.region){this.region=r.id;this.target=null;this.activateRegion(r.id);this.toast("进入 "+r.name);}}
-  acceptQuest(){this.questAccepted=true;this.questKills=0;this.toast("已接取：击败 3 名森林劫掠者")}
-  claimQuest(){if(this.questKills<3||this.questClaimed){this.toast("任务条件尚未满足");return}this.questClaimed=true;this.gainExp(80);this.inventory.push({id:"quest_badge",name:"巡林者徽记",slot:"armor",quality:"优秀",health:20,attack:0,defense:1});this.toast("任务完成：获得 80 经验与徽记")}
+  get nearbyNpc(){return NPCS.find(npc=>this.distance(this.player,npc)<=92)||null}
+  interactNpc(npcId){
+    const npc=NPCS.find(item=>item.id===npcId);
+    if(!npc||this.distance(this.player,npc)>92){this.toast("靠近村民后才能交谈");return false}
+    this.activeNpcId=npc.id;
+    if(npc.role==="quest"){
+      const line=this.questClaimed?"多亏了你，村庄周围又恢复了安宁。":!this.questAccepted?"年轻的冒险者，林间入口附近有森林劫掠者出没。请击败 3 名劫掠者，保护村民。":this.questKills<MAIN_QUEST.targetCount?"请继续清理森林劫掠者。当前进度："+this.questKills+" / "+MAIN_QUEST.targetCount:"干得漂亮！村庄周围已经安全了，这是答应给你的奖励。";
+      this.toast("守林村长："+line);
+    }else this.toast(npc.name+"：欢迎来到守林村。");
+    return true;
+  }
+  acceptQuest(){
+    if(this.activeNpcId!==MAIN_QUEST.npcId||this.nearbyNpc?.id!==MAIN_QUEST.npcId){this.toast("请先靠近守林村长交谈");return false}
+    if(this.questAccepted){this.toast("任务已经接取");return false}
+    this.questAccepted=true;this.questKills=0;this.toast("已接取：击败 3 名森林劫掠者");this.onChange();return true;
+  }
+  claimQuest(){
+    if(this.activeNpcId!==MAIN_QUEST.npcId||this.nearbyNpc?.id!==MAIN_QUEST.npcId){this.toast("请返回村庄与守林村长交谈");return false}
+    if(!this.questAccepted||this.questKills<MAIN_QUEST.targetCount||this.questClaimed){this.toast("任务条件尚未满足");return false}
+    this.questClaimed=true;this.gainExp(MAIN_QUEST.reward.exp);this.gold+=MAIN_QUEST.reward.gold;this.inventory.push({...MAIN_QUEST.reward.gear});this.toast("任务完成：获得 80 经验、60 金币与巡林者徽记");this.onChange();return true;
+  }
   toast(message){this.notice=message;this.noticeTime=2.1}
   save(){const ok=writeSave(this);this.toast(ok?"本地存档成功":"存档失败，请检查浏览器空间")}
   snapshot(){return {level:this.level,exp:this.exp,gold:this.gold,potions:this.potions,hp:this.hp,maxHp:this.maxHp,attack:this.attack,power:this.power,classId:this.classId,klass:this.klass,region:this.region,kills:this.kills,questKills:this.questKills,skillPoints:this.skillPoints,questAccepted:this.questAccepted,questClaimed:this.questClaimed,inventory:this.inventory,equipment:this.equipment,skillLevel:this.skillLevel,auto:this.auto,target:this.target}}
