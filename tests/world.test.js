@@ -220,3 +220,31 @@ test("deepwood quest progress persists in version four save",()=>{
   const game=new Game();game.deepwoodQuestAccepted=true;game.deepwoodEntered=true;game.deepwoodEliteKills=1;game.questMaterials=2;game.save();
   const restored=new Game();assert.equal(restored.deepwoodQuestAccepted,true);assert.equal(restored.deepwoodEntered,true);assert.equal(restored.deepwoodEliteKills,1);assert.equal(restored.questMaterials,2);
 });
+
+test("woodland chief warns before its thorn shockwave and damages only nearby players",()=>{
+  const game=new Game();
+  game.player.x=500;game.player.y=700;
+  const chief=game.makeEnemy({id:"woodland_chief",name:"密林头目",hp:260,attack:18,defense:6,speed:0,xp:110,gold:[28,45],elite:true},560,700,"test_chief","deepwood");
+  chief.attackTimer=99;chief.specialCooldown=0;
+  game.enemies=[chief];
+  const before=game.hp;
+  game.update(.1,input);
+  assert.ok(chief.specialWindup>0);
+  assert.equal(game.hp,before);
+  game.player.x=800;
+  game.update(1,input);
+  assert.equal(game.hp,before);
+  assert.equal(chief.specialWindup,0);
+});
+test("woodland chief thorn shockwave hits a player who remains in its warning radius",()=>{
+  const game=new Game();
+  game.player.x=500;game.player.y=700;
+  const chief=game.makeEnemy({id:"woodland_chief",name:"密林头目",hp:260,attack:18,defense:6,speed:0,xp:110,gold:[28,45],elite:true},560,700,"test_chief","deepwood");
+  chief.attackTimer=99;chief.specialCooldown=0;
+  game.enemies=[chief];
+  const before=game.hp;
+  game.update(.1,input);
+  game.update(1,input);
+  assert.ok(game.hp<before);
+  assert.equal(chief.specialCooldown,5.8);
+});
