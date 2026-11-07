@@ -14,6 +14,7 @@ export const ENEMIES=[
   {id:"forest_beast",name:"森林劫掠者",hp:54,attack:7,defense:1,speed:48,xp:22,gold:[5,12],color:"#9a6543"},
   {id:"thorn_wolf",name:"荆棘野狼",hp:68,attack:9,defense:2,speed:64,xp:28,gold:[8,16],color:"#77836b"},
   {id:"ruin_guard",name:"遗迹守卫",hp:150,attack:15,defense:5,speed:34,xp:65,gold:[18,30],color:"#89908a",elite:true},
+  {id:"woodland_chief",name:"密林头目",hp:260,attack:18,defense:6,speed:42,xp:110,gold:[28,45],color:"#9b7048",elite:true},
   {id:"ancient_tree",name:"腐化古树",hp:1200,attack:24,defense:10,speed:22,xp:500,gold:[120,180],boss:true,color:"#876047"}
 ];
 export const GEAR=[
@@ -28,6 +29,7 @@ export const NPCS=[
   {id:"village_elder",name:"守林村长",title:"新手村委托人",x:450,y:260,role:"quest",color:"#d9b77a"},
   {id:"village_smith",name:"老铁匠",title:"装备修理",x:310,y:185,role:"service",color:"#9da9a2"}
 ];
+export const DEEPWOOD_QUEST={id:"deepwood_threat",title:"幽暗密林的威胁",npcId:"village_elder",targetEnemyId:"woodland_chief",materialId:"corrupted_bark",materialName:"腐化树皮",materialCount:3,reward:{exp:180,gold:160,gear:{id:"deepwood_guardian_armor",name:"密林守护甲",slot:"armor",quality:"稀有",health:55,attack:2,defense:5}}};
 export const MAIN_QUEST={
   id:"clear_the_woods",title:"清理林间",npcId:"village_elder",targetEnemyId:"forest_beast",
   targetCount:3,reward:{exp:80,gold:60,gear:{id:"quest_badge",name:"巡林者徽记",slot:"armor",quality:"优秀",health:20,attack:0,defense:1}}
