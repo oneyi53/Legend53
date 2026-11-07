@@ -172,6 +172,10 @@ func _build_hud() -> void:
     _class_button.text = "切换职业"
     _class_button.pressed.connect(_cycle_class)
     content.add_child(_class_button)
+    _skill_upgrade_button = Button.new()
+    _skill_upgrade_button.text = "升级职业技能"
+    _skill_upgrade_button.pressed.connect(_upgrade_class_skill)
+    content.add_child(_skill_upgrade_button)
     var inventory_scroll := ScrollContainer.new()
     inventory_scroll.custom_minimum_size = Vector2(380, 390)
     inventory_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
