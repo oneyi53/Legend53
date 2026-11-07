@@ -36,7 +36,7 @@ test("quest progress counts only kills after accepting the quest",()=>{
   const enemy=game.makeEnemy({id:"test",name:"测试怪",hp:1,attack:1,defense:0,speed:0,xp:1,gold:[1,1]},450,540);
   game.enemies=[enemy];game.target=enemy;game.basicAttack();
   assert.equal(game.questKills,0);
-  game.interactNpc("village_elder");game.acceptQuest();
+  game.player.y=260;game.interactNpc("village_elder");game.acceptQuest();game.player.y=500;
   const next=game.makeEnemy({id:"forest_beast",name:"森林劫掠者",hp:1,attack:1,defense:0,speed:0,xp:1,gold:[1,1]},450,540);
   game.enemies=[next];game.target=next;game.player.attackTimer=0;game.basicAttack();
   assert.equal(game.questKills,1);
