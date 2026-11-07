@@ -6,8 +6,12 @@ export class Game{
   constructor(){
     const saved=loadSave();this.classId=saved?.classId||"warrior";this.level=saved?.level||1;this.exp=saved?.exp||0;this.gold=saved?.gold??100;this.potions=saved?.potions??3;this.inventory=saved?.inventory||[];this.equipment=saved?.equipment||{};
     this.hp=saved?.hp??this.maxHp;this.player={x:saved?.x??450,y:saved?.y??330,attackTimer:0,skillTimer:0,flash:0};
-    this.kills=saved?.kills||0;this.questKills=saved?.questKills||0;this.skillPoints=saved?.skillPoints||0;this.questAccepted=saved?.questAccepted||false;this.questClaimed=saved?.questClaimed||false;this.skillLevel=saved?.skillLevel||1;this.region="village";this.auto=false;this.target=null;this.drops=[];this.effects=[];this.damageTexts=[];this.enemies=[];this.clock=0;this.autosaveTimer=0;this.notice="";this.noticeTime=0;this.onChange=()=>{};
-    this.spawnInitial();this.updateRegion();this.hp=clamp(this.hp,1,this.maxHp);
+    this.kills=saved?.kills||0;this.questKills=saved?.questKills||0;this.skillPoints=saved?.skillPoints||0;this.questAccepted=saved?.questAccepted||false;this.questClaimed=saved?.questClaimed||false;this.skillLevel=saved?.skillLevel||1;this.region="village";this.auto=false;this.target=null;this.drops=[];this.effects=[];this.enemies=[];this.clock=0;this.autosaveTimer=0;this.notice="";this.noticeTime=0;this.onChange=()=>{};
+    const restoredEnemies=Array.isArray(saved?.enemies)?saved.enemies.filter(e=>e&&typeof e.id==="string"&&Number.isFinite(e.x)&&Number.isFinite(e.y)&&Number.isFinite(e.hp)&&Number.isFinite(e.hpMax)):null;
+    if(restoredEnemies)this.enemies=restoredEnemies.map(e=>({...e,alive:e.alive!==false,attackTimer:Math.max(0,Number(e.attackTimer)||0),phase:Number(e.phase)||0}));
+    else this.spawnInitial();
+    this.drops=Array.isArray(saved?.drops)?saved.drops.filter(d=>d&&Number.isFinite(d.x)&&Number.isFinite(d.y)&&typeof d.type==="string"):[];
+    this.updateRegion();this.hp=clamp(this.hp,1,this.maxHp);
   }
   get klass(){return CLASSES[this.classId]} get maxHp(){return this.klass.maxHp+(this.level-1)*12+this.stat("health")} get attack(){return this.klass.attack+(this.level-1)*2+this.stat("attack")} get defense(){return this.klass.defense} get power(){return Math.round(this.level*12+this.attack*4+this.maxHp*.35+this.stat("defense")*8)}
   stat(key){return Object.values(this.equipment).reduce((n,item)=>n+(item?.[key]||0),0)}
