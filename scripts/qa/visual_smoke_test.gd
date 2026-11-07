@@ -64,9 +64,11 @@ func _capture_viewport(file_name: String) -> bool:
     if image.is_empty():
         push_error("Visual smoke test: viewport image is empty.")
         return false
+    var width_override := int(ProjectSettings.get_setting("display/window/size/window_width_override"))
+    var height_override := int(ProjectSettings.get_setting("display/window/size/window_height_override"))
     var expected_size := Vector2i(
-        int(ProjectSettings.get_setting("display/window/size/viewport_width")),
-        int(ProjectSettings.get_setting("display/window/size/viewport_height"))
+        width_override if width_override > 0 else int(ProjectSettings.get_setting("display/window/size/viewport_width")),
+        height_override if height_override > 0 else int(ProjectSettings.get_setting("display/window/size/viewport_height"))
     )
     if image.get_size() != expected_size:
         push_error("Visual smoke test: unexpected viewport size %s (expected %s)." % [str(image.get_size()), str(expected_size)])
