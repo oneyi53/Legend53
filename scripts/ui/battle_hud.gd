@@ -27,7 +27,8 @@ var _nearby_npc: Node2D
 var _service_npcs: Array[Node2D] = []
 var _dialogue_title: Label
 var _dialogue_secondary: Button
-var _dialogue_forge_button: Button\nvar _dialogue_awaken_button: Button
+var _dialogue_forge_button: Button
+var _dialogue_awaken_button: Button
 var _currency_text: Label
 var _potion_button: Button
 var _skill_button: Button
