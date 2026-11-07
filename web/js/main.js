@@ -32,7 +32,9 @@ $("modal-content").querySelectorAll("[data-buy]").forEach(b=>b.addEventListener(
 $("modal-content").querySelectorAll("[data-equip]").forEach(b=>b.addEventListener("click",()=>{const item=game.inventory.splice(Number(b.dataset.equip),1)[0];if(item){const old=game.equipment[item.slot];if(old)game.inventory.push(old);game.equipment[item.slot]=item;game.toast("已装备："+item.name);openPanel(type)}}));
 $("skill-upgrade")?.addEventListener("click",()=>{if(game.upgradeSkill())openPanel(type);else game.toast("技能点不足或技能已满级")});
 $("quest-talk")?.addEventListener("click",()=>{const npc=game.nearbyNpc;if(npc?.id==="village_elder")game.interactNpc(npc.id);else game.toast("守林村长位于新手村中央，返回村庄靠近他");openPanel(type)});
-$("quest-action")?.addEventListener("click",()=>{if(!game.questAccepted)game.acceptQuest();else game.claimQuest();openPanel(type)});\n$("deepwood-accept")?.addEventListener("click",()=>{game.acceptDeepwoodQuest();openPanel(type)});\n$("deepwood-claim")?.addEventListener("click",()=>{game.claimDeepwoodQuest();openPanel(type)});
+$("quest-action")?.addEventListener("click",()=>{if(!game.questAccepted)game.acceptQuest();else game.claimQuest();openPanel(type)});
+$("deepwood-accept")?.addEventListener("click",()=>{game.acceptDeepwoodQuest();openPanel(type)});
+$("deepwood-claim")?.addEventListener("click",()=>{game.claimDeepwoodQuest();openPanel(type)});
 }
 function card(label,value){return '<div class="stat-card"><b>'+label+'</b><span>'+value+'</span></div>'}
 window.addEventListener("beforeunload",()=>game.save());
