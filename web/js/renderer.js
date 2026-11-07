@@ -3,7 +3,7 @@ export class Renderer{
   loadImage(key,src){const img=new Image();img.src=src;this.images[key]=img}
   resize(){const r=this.canvas.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1);this.canvas.width=Math.round(r.width*dpr);this.canvas.height=Math.round(r.height*dpr);this.scale=Math.min(r.width/720,r.height/1280);this.offsetX=(r.width-720*this.scale)/2;this.offsetY=(r.height-1280*this.scale)/2}
   draw(){const c=this.ctx,g=this.game,r=this.canvas.getBoundingClientRect(),dpr=this.canvas.width/(r.width||1);c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,this.canvas.width,this.canvas.height);c.setTransform(dpr*this.scale,0,0,dpr*this.scale,dpr*this.offsetX,dpr*this.offsetY);
-    const camX=Math.max(0,Math.min(180,g.player.x-360)),camY=Math.max(0,Math.min(300,g.player.y-590));c.save();c.translate(-camX,-camY);this.drawWorld(c,camX,camY);this.drawDrops(c);this.drawEnemies(c);this.drawPlayer(c);this.drawEffects(c);c.restore();this.drawTouchStick(c);this.input.draw(c)}
+    const camX=Math.max(0,Math.min(180,g.player.x-360)),camY=Math.max(0,Math.min(300,g.player.y-590));c.save();c.translate(-camX,-camY);this.drawWorld(c,camX,camY);this.drawDrops(c);this.drawNpcs(c);this.drawEnemies(c);this.drawPlayer(c);this.drawEffects(c);c.restore();this.drawTouchStick(c);this.input.draw(c)}
   drawWorld(c,cx,cy){c.fillStyle="#203529";c.fillRect(0,0,900,1600);const bands=[["#4d6347",0,390],["#395640",390,560],["#304b3a",560,850],["#5b5542",850,1160],["#514238",1160,1600]];for(const [color,y1,y2] of bands){c.fillStyle=color;c.fillRect(0,y1,900,y2-y1)}
     for(let y=0;y<1600;y+=72)for(let x=0;x<900;x+=72){const v=Math.sin(x*12.9898+y*78.233)*43758.5453;c.fillStyle=(v-Math.floor(v))>.5?"#ffffff08":"#06140b0a";c.beginPath();c.ellipse(x+25,y+18,22,9,.2,0,Math.PI*2);c.fill()}
     c.strokeStyle="#c6b98a44";c.lineWidth=70;c.beginPath();c.moveTo(450,250);c.bezierCurveTo(300,460,600,650,420,900);c.bezierCurveTo(300,1080,520,1200,450,1430);c.stroke();
@@ -15,6 +15,19 @@ export class Renderer{
   drawBuilding(c,x,y){c.save();c.translate(x,y);c.fillStyle="#19231d";c.fillRect(-28,-30,56,38);c.fillStyle="#9a754a";c.beginPath();c.moveTo(-35,-28);c.lineTo(0,-57);c.lineTo(35,-28);c.closePath();c.fill();c.fillStyle="#59422e";c.fillRect(-8,-16,16,24);c.restore()}
   drawGate(c,x,y){c.strokeStyle="#c2a16b";c.lineWidth=9;c.beginPath();c.moveTo(x-55,y);c.lineTo(x-55,y-60);c.lineTo(x+55,y-60);c.lineTo(x+55,y);c.stroke();c.fillStyle="#d9bf83";c.font="15px sans-serif";c.textAlign="center";c.fillText("守林新手村",x,y-78)}
   drawAltar(c,x,y){c.fillStyle="#302d29";c.beginPath();c.ellipse(x,y,90,48,0,0,Math.PI*2);c.fill();c.strokeStyle="#b78c5e";c.lineWidth=4;c.stroke();c.fillStyle="#79583e";c.fillRect(x-36,y-70,72,70);c.fillStyle="#bd8a5d";c.beginPath();c.moveTo(x-48,y-70);c.lineTo(x,y-112);c.lineTo(x+48,y-70);c.fill()}
+  drawNpcs(c){
+    const npcs=[{id:"village_elder",name:"守林村长",x:450,y:260,color:"#d9b77a"},{id:"village_smith",name:"老铁匠",x:310,y:185,color:"#9da9a2"}];
+    for(const npc of npcs){
+      c.save();c.translate(npc.x,npc.y);
+      c.fillStyle="#07100b66";c.beginPath();c.ellipse(0,5,20,8,0,0,Math.PI*2);c.fill();
+      c.fillStyle=npc.color;c.beginPath();c.arc(0,-31,13,0,Math.PI*2);c.fill();
+      c.fillStyle="#554332";c.fillRect(-11,-20,22,25);
+      c.fillStyle="#f2dfad";c.font="11px sans-serif";c.textAlign="center";c.fillText(npc.name,0,-54);
+      if(npc.id==="village_elder"&&!this.game.questClaimed){c.fillStyle="#f1d28a";c.font="bold 17px sans-serif";c.fillText(this.game.questAccepted?(this.game.questKills>=3?"!":"…"):"!",0,-69)}
+      if(this.game.activeNpcId===npc.id){c.strokeStyle="#f1d28a";c.lineWidth=2;c.beginPath();c.ellipse(0,4,24,11,0,0,Math.PI*2);c.stroke()}
+      c.restore();
+    }
+  }
   drawEnemies(c){for(const e of this.game.enemies){if(!e.alive||!e.active)continue;c.save();c.translate(e.x,e.y+Math.sin(e.phase*3)*2);c.fillStyle="#07100b66";c.beginPath();c.ellipse(0,5,e.boss?36:23,10,0,0,Math.PI*2);c.fill();const img=this.images[e.boss?"boss":"enemy"];if(img?.complete&&img.naturalWidth)c.drawImage(img,e.boss?-48:-34,e.boss?-100:-68,e.boss?96:68,e.boss?100:76);else{c.fillStyle=e.color;c.beginPath();c.arc(0,-18,e.boss?35:23,0,Math.PI*2);c.fill()}if(e.elite||e.boss){c.fillStyle="#f0d48b";c.font="11px sans-serif";c.textAlign="center";c.fillText(e.boss?"首领": "精英",0,-90)}this.drawBar(c,-25,e.boss?-108:-78,Math.max(0,e.hp/e.hpMax),50,"#bd5146");if(this.game.target===e){c.strokeStyle="#f4d78f";c.lineWidth=2;c.beginPath();c.ellipse(0,4,29,11,0,0,Math.PI*2);c.stroke()}c.restore()}}
   drawBar(c,x,y,p,w,color){c.fillStyle="#18201b";c.fillRect(x,y,w,5);c.fillStyle=color;c.fillRect(x,y,w*Math.max(0,Math.min(1,p)),5)}
   drawPlayer(c){if(this.playerArtClass!==this.game.classId){this.playerArtClass=this.game.classId;this.loadImage("player","./assets/characters/"+this.game.klass.art)}const p=this.game.player;c.save();c.translate(p.x,p.y+Math.sin(this.game.clock*3)*1.6);c.fillStyle="#07100b70";c.beginPath();c.ellipse(0,5,26,10,0,0,Math.PI*2);c.fill();const img=this.images.player;if(img?.complete&&img.naturalWidth)c.drawImage(img,-34,-90,68,88);else{c.fillStyle="#c69a69";c.beginPath();c.arc(0,-35,18,0,Math.PI*2);c.fill()}if(p.flash>0){c.globalAlpha=.45;c.fillStyle="#ff8a70";c.beginPath();c.arc(0,-45,34,0,Math.PI*2);c.fill()}c.restore()}
