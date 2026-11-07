@@ -1,4 +1,4 @@
-import {CLASSES,REGIONS,ENEMIES,GEAR,NPCS,MAIN_QUEST} from "./data.js";
+import {CLASSES,REGIONS,ENEMIES,GEAR,NPCS,MAIN_QUEST,SHOP_ITEMS} from "./data.js";
 import {loadSave,writeSave} from "./storage.js";
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const rand=(a,b)=>Math.floor(a+Math.random()*(b-a+1));
@@ -100,11 +100,24 @@ export class Game{
     const npc=NPCS.find(item=>item.id===npcId);
     if(!npc||this.distance(this.player,npc)>92){this.toast("靠近村民后才能交谈");return false}
     this.activeNpcId=npc.id;
+    if(npc.role==="service"){this.toast("老铁匠：看看货吧，都是给冒险者准备的实用装备。");return true}
     if(npc.role==="quest"){
       const line=this.questClaimed?"多亏了你，村庄周围又恢复了安宁。":!this.questAccepted?"年轻的冒险者，林间入口附近有森林劫掠者出没。请击败 3 名劫掠者，保护村民。":this.questKills<MAIN_QUEST.targetCount?"请继续清理森林劫掠者。当前进度："+this.questKills+" / "+MAIN_QUEST.targetCount:"干得漂亮！村庄周围已经安全了，这是答应给你的奖励。";
       this.toast("守林村长："+line);
     }else this.toast(npc.name+"：欢迎来到守林村。");
     return true;
+  }
+  buyShopItem(itemId){
+    const npc=this.nearbyNpc;
+    if(npc?.id!=="village_smith"||this.activeNpcId!=="village_smith"){this.toast("请靠近老铁匠后再购买");return false}
+    const item=SHOP_ITEMS.find(entry=>entry.id===itemId);
+    if(!item){this.toast("商品不存在");return false}
+    if(this.gold<item.price){this.toast("金币不足，还需要 "+(item.price-this.gold)+" 金币");return false}
+    this.gold-=item.price;
+    if(item.kind==="potion")this.potions++;
+    else this.inventory.push({...item.gear});
+    this.toast("购买成功："+item.name);
+    this.onChange();return true;
   }
   acceptQuest(){
     if(this.activeNpcId!==MAIN_QUEST.npcId||this.nearbyNpc?.id!==MAIN_QUEST.npcId){this.toast("请先靠近守林村长交谈");return false}
