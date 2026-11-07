@@ -46,7 +46,7 @@ export class Game{
   }
   get maxReachableY(){let max=REGIONS[0].maxY;for(const region of REGIONS){if(this.level>=region.level)max=Math.max(max,region.maxY);}return Math.min(1480,max-1)}
   movePlayer(dx,dy){const nextX=clamp(this.player.x+dx,38,862);const nextY=clamp(this.player.y+dy,70,this.maxReachableY);if(this.player.y+dy>this.maxReachableY&&this.player.y<=this.maxReachableY)this.toast("等级不足，暂时无法进入下一区域");this.player.x=nextX;this.player.y=nextY;}
-  makeEnemy(type,x,y,spawnId=null,regionId=null){return {...type,x,y,homeX:x,homeY:y,spawnId,regionId:regionId||REGIONS.find(r=>y>=r.minY&&y<r.maxY)?.id||"village",hp:type.hp,hpMax:type.hp,attackTimer:rand(0,10)/10,phase:Math.random()*6,alive:true,active:true,respawnTimer:0}}
+  makeEnemy(type,x,y,spawnId=null,regionId=null){return {...type,x,y,homeX:x,homeY:y,spawnId,regionId:regionId||REGIONS.find(r=>y>=r.minY&&y<r.maxY)?.id||"village",hp:type.hp,hpMax:type.hp,attackTimer:rand(0,10)/10,phase:Math.random()*6,alive:true,active:true,respawnTimer:0,specialCooldown:type.id==="woodland_chief"?3.2:0,specialWindup:0}}
   update(dt,input){
     this.clock+=dt;this.autosaveTimer+=dt;if(this.autosaveTimer>=8){this.autosaveTimer=0;writeSave(this)}this.player.attackTimer=Math.max(0,this.player.attackTimer-dt);this.player.skillTimer=Math.max(0,this.player.skillTimer-dt);this.player.flash=Math.max(0,this.player.flash-dt);
     const d=input.getDirection();if(Math.hypot(d.x,d.y)>.08){this.movePlayer(d.x*220*dt,d.y*220*dt);this.target=null}
@@ -73,6 +73,22 @@ export class Game{
         if(homeDist>3){
           e.x+=((e.homeX??e.x)-e.x)/homeDist*e.speed*1.25*dt;
           e.y+=((e.homeY??e.y)-e.y)/homeDist*e.speed*1.25*dt;
+        }
+      }
+      if(e.id==="woodland_chief"){
+        e.specialCooldown=Math.max(0,(e.specialCooldown??3.2)-dt);
+        if(e.specialWindup>0){
+          e.specialWindup=Math.max(0,e.specialWindup-dt);
+          if(e.specialWindup===0){
+            const impactDistance=this.distance(this.player,e);
+            this.effects.push({x:e.x,y:e.y,life:.5,max:.5,type:"elite_burst"});
+            if(impactDistance<112){this.takeDamage(Math.round(e.attack*1.65));this.toast("密林头目：荆棘震荡！")}
+            e.specialCooldown=5.8;
+          }
+        }else if(e.specialCooldown===0&&dist<205){
+          e.specialWindup=.9;
+          this.effects.push({x:e.x,y:e.y,life:.9,max:.9,type:"elite_warning"});
+          this.toast("警告：密林头目正在蓄力，迅速拉开距离！");
         }
       }
       if(dist<43&&e.attackTimer<=0){this.takeDamage(e.attack);e.attackTimer=e.boss?1.45:1.25}else e.attackTimer-=dt;
