@@ -8,6 +8,7 @@ signal skill_used(skill_name: String, affected_count: int)
 
 const EXP_LOOT_SCRIPT = preload("res://scripts/combat/experience_drop.gd")
 const GEAR_LOOT_SCRIPT = preload("res://scripts/combat/equipment_drop.gd")
+const COMBAT_EFFECT_SCRIPT = preload("res://scripts/combat/combat_effect.gd")
 
 @export var auto_notice_range: float = 520.0
 @export var auto_attack_range: float = 58.0
@@ -171,19 +172,28 @@ func cast_class_skill() -> bool:
         radius = 178.0
         multiplier = 1.9
         skill_name = "灵符治疗"
+    var effect_kind := "slash"
+    if class_key == "mage":
+        effect_kind = "fire"
+    elif class_key == "taoist":
+        effect_kind = "seal"
+    _spawn_combat_effect(player.global_position, effect_kind, skill_name, false)
     var hit_count := 0
     for enemy in get_tree().get_nodes_in_group("enemies"):
         if not is_instance_valid(enemy) or not enemy is Node2D:
             continue
         if player.global_position.distance_to(enemy.global_position) <= radius:
             if enemy.has_method("take_damage"):
-                enemy.take_damage(float(player.get("attack_power")) * multiplier)
+                var skill_damage := float(player.get("attack_power")) * multiplier
+                enemy.take_damage(skill_damage)
+                _spawn_combat_effect(enemy.global_position, effect_kind, str(roundi(skill_damage)), false)
                 hit_count += 1
     if class_key == "taoist":
         var missing_health := float(player.get("max_health")) - float(player.get("health"))
         var restored := minf(float(player.get("max_health")) * 0.28, missing_health)
         if restored > 0.0:
             player.call("restore_health", restored)
+            _spawn_combat_effect(player.global_position, "heal", "+%d" % roundi(restored), false)
     _skill_cooldown = get_skill_cooldown_duration()
     skill_used.emit(skill_name, hit_count)
     loot_message.emit("%s发动！命中%d个目标%s" % [skill_name, hit_count, "，治疗效果已生效" if class_key == "taoist" else ""])
@@ -196,8 +206,12 @@ func _attack_current_target() -> void:
     var damage := 18.0
     if is_instance_valid(player):
         damage = float(player.get("attack_power"))
+    var critical := randf() < 0.12
+    if critical:
+        damage *= 1.8
     if current_target.has_method("take_damage"):
         current_target.take_damage(damage)
+        _spawn_combat_effect(current_target.global_position, "slash", str(roundi(damage)), critical)
     _attack_timer = attack_interval
     if not is_instance_valid(current_target):
         target_changed.emit(null)
@@ -216,3 +230,12 @@ func _find_nearest_target(search_range: float) -> Node2D:
             nearest_distance = distance
             nearest = candidate
     return nearest
+
+func _spawn_combat_effect(world_position: Vector2, effect_kind: String, label_text: String, critical: bool) -> void:
+    var effect := Node2D.new()
+    effect.set_script(COMBAT_EFFECT_SCRIPT)
+    effect.effect_kind = effect_kind
+    effect.label_text = label_text
+    effect.is_critical = critical
+    effect.global_position = world_position
+    get_tree().current_scene.add_child(effect)

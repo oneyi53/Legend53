@@ -22,6 +22,13 @@ var is_elite := false
 var elite_type := ""
 var elite_title := ""
 var boss_title := ""
+var boss_phase := 0
+var _boss_base_speed := 48.0
+var _boss_base_damage := 18.0
+var _boss_base_interval := 1.45
+var _boss_windup := 0.0
+var _boss_telegraph_radius := 158.0
+var _boss_attack_pending := false
 
 func _ready() -> void:
     health = max_health
@@ -38,6 +45,17 @@ func _physics_process(delta: float) -> void:
         move_and_slide()
         return
     _attack_timer = maxf(0.0, _attack_timer - delta)
+    if is_boss and _boss_attack_pending:
+        _boss_windup = maxf(0.0, _boss_windup - delta)
+        queue_redraw()
+        if _boss_windup <= 0.0:
+            _boss_attack_pending = false
+            if global_position.distance_to(_player.global_position) <= _boss_telegraph_radius and _player.has_method("take_damage"):
+                _player.take_damage(attack_damage)
+            queue_redraw()
+        velocity = Vector2.ZERO
+        move_and_slide()
+        return
     # The village is a protected sanctuary. Enemies disengage immediately
     # when the player enters it and cannot cross its southern boundary.
     if _player.global_position.y < SAFE_ZONE_END_Y:
@@ -49,7 +67,12 @@ func _physics_process(delta: float) -> void:
     if global_position.y + velocity.y * delta < SAFE_ZONE_END_Y + SAFE_ZONE_BUFFER:
         velocity = Vector2.ZERO
     move_and_slide()
-    if distance <= attack_range and _attack_timer <= 0.0:
+    if is_boss and distance <= 205.0 and _attack_timer <= 0.0:
+        _boss_attack_pending = true
+        _boss_windup = 0.82
+        _attack_timer = attack_interval
+        queue_redraw()
+    elif distance <= attack_range and _attack_timer <= 0.0:
         if _player.has_method("take_damage"):
             _player.take_damage(attack_damage)
         _attack_timer = attack_interval
@@ -100,6 +123,9 @@ func configure_boss() -> void:
     attack_range = 76.0
     attack_damage = 18.0
     attack_interval = 1.45
+    _boss_base_speed = move_speed
+    _boss_base_damage = attack_damage
+    _boss_base_interval = attack_interval
     scale = Vector2(1.65, 1.65)
     queue_redraw()
 
@@ -107,6 +133,22 @@ func take_damage(amount: float) -> void:
     if _is_defeated or amount <= 0.0:
         return
     health = maxf(0.0, health - amount)
+    if is_boss:
+        var next_phase := 2 if health <= max_health * 0.35 else (1 if health <= max_health * 0.70 else 0)
+        if next_phase > boss_phase:
+            boss_phase = next_phase
+            if boss_phase == 1:
+                move_speed = _boss_base_speed * 1.18
+                attack_damage = _boss_base_damage * 1.20
+                attack_interval = _boss_base_interval * 0.88
+                boss_title = "腐化古树 · 苏醒"
+            else:
+                move_speed = _boss_base_speed * 1.42
+                attack_damage = _boss_base_damage * 1.55
+                attack_interval = _boss_base_interval * 0.72
+                _boss_telegraph_radius = 188.0
+                boss_title = "腐化古树 · 暴走"
+            _attack_timer = minf(_attack_timer, attack_interval)
     queue_redraw()
     modulate = Color("#ffd0b8")
     var flash := create_tween()
@@ -132,7 +174,11 @@ func _draw() -> void:
     var bar_y := -43.0 if is_boss else -29.0
     draw_rect(Rect2(-bar_width * 0.5, bar_y, bar_width, 5), Color("#382d2a"))
     draw_rect(Rect2(-bar_width * 0.5, bar_y, bar_width * clampf(health / maxf(max_health, 1), 0, 1), 5), Color("#d85b4d"))
+    if is_boss and _boss_attack_pending:
+        var warning_alpha := 0.42 + 0.30 * absf(sin(Time.get_ticks_msec() * 0.018))
+        draw_arc(Vector2.ZERO, _boss_telegraph_radius / scale.x, 0.0, TAU, 48, Color(1.0, 0.20, 0.14, warning_alpha), 3.5, true)
+        draw_arc(Vector2.ZERO, (_boss_telegraph_radius / scale.x) * clampf(1.0 - _boss_windup / 0.82, 0.08, 1.0), 0.0, TAU, 48, Color(1.0, 0.62, 0.28, 0.9), 2.0, true)
     if is_boss and ThemeDB.fallback_font:
-        draw_string(ThemeDB.fallback_font, Vector2(-42, -52), boss_title, HORIZONTAL_ALIGNMENT_CENTER, 84, 10, Color("#ffd59a"))
+        draw_string(ThemeDB.fallback_font, Vector2(-56, -52), boss_title, HORIZONTAL_ALIGNMENT_CENTER, 112, 10, Color("#ffd59a"))
     elif is_elite and ThemeDB.fallback_font:
         draw_string(ThemeDB.fallback_font, Vector2(-35, -36), elite_title, HORIZONTAL_ALIGNMENT_CENTER, 70, 9, Color("#f5d99a"))
