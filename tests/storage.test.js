@@ -24,23 +24,24 @@ test("version 1 saves migrate without losing character progress",()=>{
   const game=new Game();
   assert.equal(game.classId,"mage");
   assert.equal(game.level,3);
-  assert.equal(game.enemies.length,8);
+  assert.equal(game.enemies.filter(enemy=>enemy.active).length,3);
+  assert.ok(game.enemies.every(enemy=>enemy.regionId==="deepwood"));
 });
 
 test("version 2 saves restore enemy health and uncollected drops",()=>{
   values.set(KEY,JSON.stringify({
-    version:2,classId:"warrior",level:2,exp:10,gold:50,potions:2,hp:90,x:450,y:700,
-    enemies:[{id:"forest_beast",name:"森林劫掠者",x:480,y:710,hp:7,hpMax:54,attack:7,defense:1,speed:48,xp:22,gold:[5,12],alive:true,attackTimer:.4,phase:1.2}],
+    version:2,classId:"warrior",level:3,exp:10,gold:50,potions:2,hp:90,x:450,y:700,
+    enemies:[{id:"forest_beast",name:"森林劫掠者",x:480,y:710,homeX:590,homeY:730,spawnId:"deepwood_beast_1",regionId:"deepwood",hp:7,hpMax:54,attack:7,defense:1,speed:48,xp:22,gold:[5,12],alive:true,attackTimer:.4,phase:1.2}],
     drops:[{x:460,y:705,type:"gold",amount:9,label:"金币 +9"}]
   }));
   const game=new Game();
-  assert.equal(game.enemies.length,1);
-  assert.equal(game.enemies[0].hp,7);
+  assert.equal(game.enemies.filter(enemy=>enemy.active).length,3);
+  assert.equal(game.enemies.find(enemy=>enemy.spawnId==="deepwood_beast_1").hp,7);
   assert.equal(game.drops.length,1);
   assert.equal(game.drops[0].amount,9);
   game.save();
   const saved=JSON.parse(values.get(KEY));
   assert.equal(saved.version,2);
-  assert.equal(saved.enemies[0].hp,7);
+  assert.equal(saved.enemies.find(enemy=>enemy.spawnId==="deepwood_beast_1").hp,7);
   assert.equal(saved.drops[0].amount,9);
 });
