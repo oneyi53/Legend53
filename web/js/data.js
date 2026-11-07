@@ -23,3 +23,12 @@ export const GEAR=[
   {id:"ancient_relic",name:"古树核心坠饰",slot:"necklace",quality:"传说",attack:10,health:45,defense:4}
 ];
 export const SLOT_NAMES={weapon:"武器",helmet:"头盔",necklace:"项链",bracelet:"手镯",ring:"戒指",armor:"护甲",belt:"腰带",boots:"鞋子"};
+
+export const NPCS=[
+  {id:"village_elder",name:"守林村长",title:"新手村委托人",x:450,y:260,role:"quest",color:"#d9b77a"},
+  {id:"village_smith",name:"老铁匠",title:"装备修理",x:310,y:185,role:"service",color:"#9da9a2"}
+];
+export const MAIN_QUEST={
+  id:"clear_the_woods",title:"清理林间",npcId:"village_elder",targetEnemyId:"forest_beast",
+  targetCount:3,reward:{exp:80,gold:60,gear:{id:"quest_badge",name:"巡林者徽记",slot:"armor",quality:"优秀",health:20,attack:0,defense:1}}
+};
