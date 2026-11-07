@@ -2,10 +2,10 @@ extends Node2D
 
 ## Portrait-oriented, code-drawn isometric field. No external art assets required.
 const GRID_WIDTH: int = 8
-const GRID_HEIGHT: int = 16
+const GRID_HEIGHT: int = 22
 const TILE_WIDTH: float = 96.0
 const TILE_HEIGHT: float = 48.0
-const GRID_ORIGIN := Vector2(456.0, 64.0)
+const GRID_ORIGIN := Vector2(528.0, 64.0)
 const GRID_LINE := Color("#607568")
 const EDGE_COLOR := Color("#9aab83")
 const SAFE_ZONE_END_Y := 390.0
@@ -72,7 +72,12 @@ func _draw() -> void:
             var base_color: Color = region.color
             var tile_color := base_color.lightened(0.035) if (x + y) % 2 == 0 else base_color
             draw_colored_polygon(diamond, tile_color)
-            draw_polyline(PackedVector2Array([diamond[0],diamond[1],diamond[2],diamond[3],diamond[0]]), GRID_LINE, 1.0, true)
+            draw_polyline(PackedVector2Array([diamond[0],diamond[1],diamond[2],diamond[3],diamond[0]]), GRID_LINE, 0.7, true)
+            _draw_tile_detail(center, x, y)
+    _draw_world_paths()
+    _draw_village_settlement()
+    _draw_forest_landmarks()
+    _draw_ruins_and_altar()
     var corners := PackedVector2Array([_iso_point(0.0,0.0),_iso_point(float(GRID_WIDTH),0.0),_iso_point(float(GRID_WIDTH),float(GRID_HEIGHT)),_iso_point(0.0,float(GRID_HEIGHT)),_iso_point(0.0,0.0)])
     draw_polyline(corners, EDGE_COLOR, 4.0, true)
     _draw_stone(_iso_point(2.5,5.5),25.0)
@@ -169,3 +174,68 @@ func _nearest_walkable_cell(origin: Vector2i) -> Vector2i:
                 if not _astar.is_point_solid(candidate):
                     return candidate
     return origin
+
+func _draw_tile_detail(center: Vector2, cell_x: int, cell_y: int) -> void:
+    var seed_value := cell_x * 37 + cell_y * 19
+    var fleck := Color("#b1bd83") if cell_y < 8 else Color("#a0a080")
+    for index in range(3):
+        var dx := float(((seed_value + index * 17) % 31) - 15)
+        var dy := float(((seed_value + index * 11) % 19) - 9)
+        draw_circle(center + Vector2(dx, dy), 1.2, Color(fleck, 0.20))
+    if cell_y >= 3 and cell_y < 18 and seed_value % 4 == 0:
+        var tuft := center + Vector2(float((seed_value % 17) - 8), 5.0)
+        draw_line(tuft, tuft + Vector2(-3.0, -5.0), Color("#91a56d", 0.72), 1.5, true)
+        draw_line(tuft, tuft + Vector2(2.0, -6.0), Color("#b1b77a", 0.72), 1.5, true)
+
+func _draw_world_paths() -> void:
+    var path_points := PackedVector2Array([Vector2(356,350),Vector2(365,430),Vector2(348,505),Vector2(374,590),Vector2(350,680),Vector2(365,770),Vector2(342,865),Vector2(365,965),Vector2(350,1060),Vector2(370,1160),Vector2(350,1260),Vector2(360,1370)])
+    draw_polyline(path_points, Color("#25352d", 0.34), 46.0, true)
+    draw_polyline(path_points, Color("#9a8058", 0.82), 34.0, true)
+    draw_polyline(path_points, Color("#b69a6b", 0.36), 25.0, true)
+
+func _draw_tree(point: Vector2, size: float, canopy: Color) -> void:
+    draw_circle(point + Vector2(0,size * 0.55), size * 0.72, Color("#202d27", 0.35))
+    draw_line(point + Vector2(0,size * 0.25), point + Vector2(0,-size * 0.42), Color("#60452f"), maxf(3.0,size * 0.15), true)
+    draw_circle(point + Vector2(-size * 0.27,-size * 0.35), size * 0.42, canopy.darkened(0.18))
+    draw_circle(point + Vector2(size * 0.22,-size * 0.46), size * 0.48, canopy)
+    draw_circle(point + Vector2(0,-size * 0.72), size * 0.39, canopy.lightened(0.12))
+
+func _draw_village_settlement() -> void:
+    draw_rect(Rect2(170,214,108,62), Color("#594331"))
+    draw_colored_polygon(PackedVector2Array([Vector2(158,220),Vector2(224,176),Vector2(290,220),Vector2(278,232),Vector2(224,198),Vector2(170,232)]), Color("#8e5940"))
+    draw_rect(Rect2(207,239,27,37), Color("#302b27"))
+    draw_rect(Rect2(181,231,16,17), Color("#e0bd78"))
+    draw_rect(Rect2(250,231,16,17), Color("#e0bd78"))
+    draw_colored_polygon(PackedVector2Array([Vector2(445,258),Vector2(512,258),Vector2(501,282),Vector2(454,282)]), Color("#9a5945"))
+    draw_rect(Rect2(451,282,55,30), Color("#6d5037"))
+    draw_rect(Rect2(458,289,18,15), Color("#b58b58"))
+    draw_rect(Rect2(482,289,17,15), Color("#9b7448"))
+    draw_circle(Vector2(355,260), 23, Color("#554b3a"))
+    draw_circle(Vector2(355,258), 17, Color("#82908a"))
+    draw_circle(Vector2(355,258), 11, Color("#293d3d"))
+    draw_line(Vector2(331,238), Vector2(379,238), Color("#8c7049"), 4.0)
+
+func _draw_forest_landmarks() -> void:
+    var trees := [[Vector2(145,472),25.0],[Vector2(555,480),29.0],[Vector2(205,560),34.0],[Vector2(520,615),31.0],[Vector2(155,700),35.0],[Vector2(570,745),36.0],[Vector2(235,835),30.0],[Vector2(500,900),34.0],[Vector2(135,1010),32.0],[Vector2(570,1090),35.0]]
+    for item in trees:
+        var point: Vector2 = item[0]
+        var tree_size: float = item[1]
+        var canopy := Color("#456b49") if point.y < 800.0 else Color("#5b5742")
+        _draw_tree(point, tree_size, canopy)
+    draw_line(Vector2(250,640), Vector2(277,655), Color("#684a32"), 8.0, true)
+    for point in [Vector2(292,575),Vector2(432,735),Vector2(286,950)]:
+        draw_line(point, point + Vector2(0,7), Color("#e4d4b8"), 2.0, true)
+        draw_circle(point + Vector2(-3,-1), 4.0, Color("#c66f68"))
+        draw_circle(point + Vector2(4,-2), 3.5, Color("#e0a06c"))
+
+func _draw_ruins_and_altar() -> void:
+    for point in [Vector2(190,930),Vector2(525,970),Vector2(220,1080),Vector2(500,1110)]:
+        draw_rect(Rect2(point.x - 7,point.y - 28,14,38), Color("#777466"))
+        draw_rect(Rect2(point.x - 11,point.y - 31,22,6), Color("#aaa28a"))
+        draw_line(point + Vector2(-3,-22), point + Vector2(4,2), Color("#c0b99f",0.5), 2.0)
+    draw_circle(Vector2(360,1390), 72, Color("#292e2b",0.48))
+    draw_circle(Vector2(360,1382), 58, Color("#71634e"))
+    draw_circle(Vector2(360,1378), 42, Color("#403c36"))
+    draw_arc(Vector2(360,1378), 47, 0.0, TAU, 48, Color("#c18b56"), 4.0, true)
+    draw_circle(Vector2(360,1378), 13, Color("#9e654b"))
+    draw_circle(Vector2(360,1378), 6, Color("#f0b66c"))

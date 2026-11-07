@@ -34,6 +34,7 @@ func _ready() -> void:
     health = max_health
     add_to_group("enemies")
     _player = get_tree().get_first_node_in_group("player") as Node2D
+    scale = Vector2(1.16, 1.16)
     queue_redraw()
 
 func _physics_process(delta: float) -> void:
