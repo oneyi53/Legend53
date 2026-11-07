@@ -23,7 +23,7 @@ var experience: int = 0
 var gold: int = 100
 var potions: int = 0
 var materials: Dictionary = {"rune_fragment": 0, "heartwood_essence": 0, "ancient_rune": 0, "ancient_core": 0}
-var class_id: String = "warrior"
+var class_id: String = "warrior"\nvar skill_points: int = 0\nvar skill_levels: Dictionary = {"warrior": 1, "mage": 1, "taoist": 1}
 var discovered_regions: Array[String] = ["village"]
 var inventory: Array[Dictionary] = []
 var collected_gear: Dictionary = {}
@@ -70,6 +70,8 @@ func _equipment_stat(stat_name: String) -> float:
     for slot in EQUIPMENT_SLOTS:
         var item: Dictionary = equipment.get(slot, {})
         total += float(item.get(stat_name, 0.0))
+        if str(item.get("class_affinity", "")) == class_id:
+            total += float(item.get("class_affinity_value", 0.0)) if str(item.get("class_affinity_stat", "")) == stat_name else 0.0
     return total + _set_bonus_stat(stat_name)
 
 func get_equipment_score(item: Dictionary) -> float:
@@ -122,6 +124,22 @@ func get_class_name() -> String:
         "mage": return "法师"
         "taoist": return "道士"
         _: return "战士"
+
+func get_skill_level() -> int:
+    return clampi(int(skill_levels.get(class_id, 1)), 1, 5)
+
+func upgrade_class_skill() -> bool:
+    var current_level := get_skill_level()
+    if skill_points <= 0 or current_level >= 5:
+        return false
+    skill_points -= 1
+    skill_levels[class_id] = current_level + 1
+    inventory_changed.emit()
+    save_game()
+    return true
+
+func get_skill_progress_summary() -> String:
+    return "职业技能等级：%d/5 · 可用技能点：%d（每次升级获得1点）" % [get_skill_level(), skill_points]
 
 func get_skill_name() -> String:
     match class_id:
@@ -479,7 +497,7 @@ func save_game() -> void:
         "gold": gold,
         "potions": potions,
         "materials": materials.duplicate(true),
-        "class_id": class_id,
+        "class_id": class_id,\n        "skill_points": skill_points,\n        "skill_levels": skill_levels.duplicate(true),
         "discovered_regions": discovered_regions,
         "position_x": global_position.x,
         "position_y": global_position.y,
@@ -540,6 +558,11 @@ func _load_game() -> void:
     materials["rune_fragment"] = maxi(0, int(materials.get("rune_fragment", 0)))
     for material_id in ["heartwood_essence", "ancient_rune", "ancient_core"]:
         materials[material_id] = maxi(0, int(materials.get(material_id, 0)))
+    skill_points = maxi(0, int(parsed.get("skill_points", 0)))
+    var saved_skill_levels: Variant = parsed.get("skill_levels", {})
+    if saved_skill_levels is Dictionary:
+        for skill_class in ["warrior", "mage", "taoist"]:
+            skill_levels[skill_class] = clampi(int(saved_skill_levels.get(skill_class, 1)), 1, 5)
     class_id = str(parsed.get("class_id", "warrior"))
     if class_id not in ["warrior", "mage", "taoist"]:
         class_id = "warrior"

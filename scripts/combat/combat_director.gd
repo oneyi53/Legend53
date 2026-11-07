@@ -172,6 +172,14 @@ func _spawn_equipment_drop(pos: Vector2, enemy: Node2D) -> void:
         var affix_limits: Array = stat_ranges[affix]
         item[affix] = roundi(randi_range(int(affix_limits[0]), int(affix_limits[1])) * multiplier * 0.55)
     var quality_names := {"common":"普通", "fine":"优秀", "rare":"稀有", "epic":"史诗", "legendary":"传说"}
+    # Class affinity is a rare, class-specific secondary affix.
+    if randf() < 0.28:
+        var affinity_class := ["warrior", "mage", "taoist"][randi_range(0, 2)]
+        var affinity_stats := {"warrior":"defense", "mage":"critical_chance", "taoist":"health"}
+        var affinity_values := {"warrior":2.0, "mage":2.0, "taoist":16.0}
+        item["class_affinity"] = affinity_class
+        item["class_affinity_stat"] = str(affinity_stats[affinity_class])
+        item["class_affinity_value"] = float(affinity_values[affinity_class]) * multiplier
     item["quality"] = quality
     item["quality_rank"] = rank
     item["name"] = str(quality_names[quality]) + "·" + str(item["name"])
@@ -244,7 +252,7 @@ func cast_class_skill() -> bool:
         radius = 178.0
         multiplier = 1.9
         skill_name = "灵符治疗"
-    var effect_kind := "slash"
+    multiplier += float(skill_level - 1) * 0.35\n    radius += float(skill_level - 1) * 8.0\n    var effect_kind := "slash"
     if class_key == "mage":
         effect_kind = "fire"
     elif class_key == "taoist":
@@ -266,7 +274,7 @@ func cast_class_skill() -> bool:
         if restored > 0.0:
             player.call("restore_health", restored)
             _spawn_combat_effect(player.global_position, "heal", "+%d" % roundi(restored), false)
-    _skill_cooldown = get_skill_cooldown_duration()
+    _skill_cooldown = maxf(4.0, get_skill_cooldown_duration() - float(skill_level - 1) * 0.35)
     skill_used.emit(skill_name, hit_count)
     loot_message.emit("%s发动！命中%d个目标%s" % [skill_name, hit_count, "，治疗效果已生效" if class_key == "taoist" else ""])
     return true

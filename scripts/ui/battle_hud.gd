@@ -32,7 +32,7 @@ var _dialogue_awaken_button: Button
 var _currency_text: Label
 var _potion_button: Button
 var _skill_button: Button
-var _class_button: Button
+var _class_button: Button\nvar _skill_upgrade_button: Button
 var _teleport_index := 0
 const TELEPORTS := [{"id":"village","name":"守林新手村","position":Vector2(360,320)},{"id":"entrance","name":"林间入口","position":Vector2(360,450)},{"id":"deepwood","name":"幽暗密林","position":Vector2(360,620)},{"id":"ruins","name":"古代遗迹","position":Vector2(360,800)},{"id":"clearing","name":"遗忘祭坛","position":Vector2(456,1000)}]
 
@@ -369,6 +369,14 @@ func _cast_skill() -> void:
     if is_instance_valid(_combat) and _combat.call("cast_class_skill"):
         _update_class_skill_button()
 
+func _upgrade_class_skill() -> void:
+    if _player.call("upgrade_class_skill"):
+        _notice_text.text = "%s升级成功！当前技能等级 %d/5" % [str(_player.call("get_skill_name")), int(_player.call("get_skill_level"))]
+    else:
+        _notice_text.text = "技能升级失败：需要技能点，且技能最高5级"
+    _refresh_inventory()
+    _update_class_skill_button()
+
 func _cycle_class() -> void:
     var current := str(_player.get("class_id"))
     var next_class := "mage" if current == "warrior" else ("taoist" if current == "mage" else "warrior")
@@ -411,6 +419,11 @@ func _refresh_inventory() -> void:
                 var stat_value := float(item.get(stat, 0))
                 if stat_value > 0.0:
                     bonus_parts.append("+%s%s" % [str(snappedf(stat_value, 0.1)), stat_labels[stat]])
+            var affinity_class := str(item.get("class_affinity", ""))
+            if not affinity_class.is_empty():
+                var affinity_names := {"warrior":"战士", "mage":"法师", "taoist":"道士"}
+                var affinity_stat_names := {"defense":"防御", "critical_chance":"暴击", "health":"生命"}
+                bonus_parts.append("职业词缀[%s]+%s%s" % [str(affinity_names.get(affinity_class, affinity_class)), str(snappedf(float(item.get("class_affinity_value", 0)), 0.1)), str(affinity_stat_names.get(str(item.get("class_affinity_stat", "")), ""))])
             var quality_label := str(item.get("quality", "common"))
             var source_label := str(item.get("drop_source", ""))
             lines.append("[%s] %s [%s] %s%s" % [quality_label, str(item.get("name", "装备")), slot_name, " ".join(bonus_parts), " · 来源：" + source_label if not source_label.is_empty() else ""])
@@ -421,13 +434,13 @@ func _refresh_inventory() -> void:
     var materials: Dictionary = _player.get("materials")
     lines.append("金币：%d    生命药剂：%d" % [int(_player.get("gold")), int(_player.get("potions"))])
     lines.append("锻造材料：符文碎片 ×%d" % int(materials.get("rune_fragment", 0)))
-    lines.append(str(_player.call("get_awaken_material_summary")))
+    lines.append(str(_player.call("get_awaken_material_summary")))\n    lines.append(str(_player.call("get_skill_progress_summary")))
     for slot in ["weapon", "armor", "necklace"]:
         var equipped_item: Dictionary = _player.get("equipment").get(slot, {})
         if not equipped_item.is_empty():
             lines.append("%s觉醒：+%d/3" % [str(equipped_item.get("name", slot)), int(equipped_item.get("awaken_level", 0))])
     _inventory_text.text = "\n".join(lines)
-    _class_button.text = "当前：%s · 点击切换职业" % str(_player.call("get_class_name"))
+    _class_button.text = "当前：%s · 点击切换职业" % str(_player.call("get_class_name"))\n    _skill_upgrade_button.text = "升级%s（技能%d/5，技能点%d）" % [str(_player.call("get_skill_name")), int(_player.call("get_skill_level")), int(_player.get("skill_points"))]\n    _skill_upgrade_button.disabled = int(_player.get("skill_points")) <= 0 or int(_player.call("get_skill_level")) >= 5
     _potion_button.disabled = int(_player.get("potions")) <= 0 or float(_player.get("health")) >= float(_player.get("max_health"))
     _currency_text.text = "金币 %d  ·  药剂 %d" % [int(_player.get("gold")), int(_player.get("potions"))]
     _weapon_button.disabled = not _has_upgrade("weapon")
