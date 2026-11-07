@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { Game } from "../web/js/game.js";
 
+globalThis.localStorage={getItem:()=>null,setItem:()=>{}};
+
 function freshGame(){
   const game=new Game();
   game.player.x=450;game.player.y=500;game.enemies=[];
@@ -35,7 +37,7 @@ test("quest progress counts only kills after accepting the quest",()=>{
   game.enemies=[enemy];game.target=enemy;game.basicAttack();
   assert.equal(game.questKills,0);
   game.acceptQuest();
-  const next=game.makeEnemy({id:"test2",name:"测试怪2",hp:1,attack:1,defense:0,speed:0,xp:1,gold:[1,1]},450,540);
+  const next=game.makeEnemy({id:"forest_beast",name:"森林劫掠者",hp:1,attack:1,defense:0,speed:0,xp:1,gold:[1,1]},450,540);
   game.enemies=[next];game.target=next;game.player.attackTimer=0;game.basicAttack();
   assert.equal(game.questKills,1);
 });
