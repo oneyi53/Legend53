@@ -65,8 +65,8 @@ test("defeated monsters respawn at their original spawn point after active time"
 
 test("main quest counts only forest raiders, not wolves or elite guards",()=>{
   const game=new Game();
-  game.player.y=450;game.updateRegion();
   game.interactNpc("village_elder");game.acceptQuest();
+  game.player.y=450;game.updateRegion();
   const wolf=game.enemies.find(enemy=>enemy.id==="thorn_wolf");
   const raider=game.enemies.find(enemy=>enemy.id==="forest_beast");
   game.defeat(wolf);
