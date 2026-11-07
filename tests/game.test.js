@@ -55,3 +55,11 @@ test("skill points are awarded on level up and can improve the skill",()=>{
   assert.equal(game.skillLevel,2);
   assert.equal(game.skillPoints,0);
 });
+
+test("equipment defense reduces incoming damage",()=>{
+  const game=freshGame();
+  game.equipment={armor:{id:"test_armor",name:"测试护甲",slot:"armor",defense:2}};
+  game.hp=game.maxHp;
+  game.takeDamage(10);
+  assert.equal(game.hp,game.maxHp-5);
+});
