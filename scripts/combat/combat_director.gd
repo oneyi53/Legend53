@@ -120,8 +120,14 @@ func _spawn_equipment_drop(pos: Vector2) -> void:
     var primary_stats := {"weapon":"attack", "helmet":"defense", "necklace":"critical_chance", "bracelet":"attack_speed", "ring":"attack_speed", "armor":"health", "belt":"defense", "boots":"defense"}
     var stat_ranges := {"attack":[2,5], "health":[12,28], "defense":[1,3], "critical_chance":[1,3], "attack_speed":[1,3]}
     var stat := str(primary_stats[slot])
+    var set_id := "forest" if randf() < 0.5 else "ruins"
+    var set_names := {"forest":"林地守望", "ruins":"遗迹征服者"}
+    var set_piece_names := {
+        "forest":{"weapon":"守望者短刃","helmet":"守望者头盔","necklace":"守望者坠饰","bracelet":"守望者护腕","ring":"守望者指环","armor":"守望者轻甲","belt":"守望者腰带","boots":"守望者长靴"},
+        "ruins":{"weapon":"遗迹裁决者","helmet":"遗迹石盔","necklace":"古文明项链","bracelet":"符文护腕","ring":"符文戒指","armor":"遗迹胸甲","belt":"遗迹束带","boots":"遗迹行靴"}
+    }
     var limits: Array = stat_ranges[stat]
-    var item: Dictionary = {"name":slot_names[slot], "slot":slot, "attack":0, "health":0, "defense":0, "critical_chance":0, "attack_speed":0}
+    var item: Dictionary = {"name":str(set_piece_names[set_id][slot]), "slot":slot, "set_id":set_id, "set_name":str(set_names[set_id]), "item_id":"%s_%s" % [set_id, slot], "attack":0, "health":0, "defense":0, "critical_chance":0, "attack_speed":0}
     item[stat] = roundi(randi_range(int(limits[0]), int(limits[1])) * multiplier)
     if rank >= 3:
         var affix_stats := ["attack", "health", "defense", "critical_chance", "attack_speed"]

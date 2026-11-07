@@ -25,6 +25,7 @@ var potions: int = 0
 var class_id: String = "warrior"
 var discovered_regions: Array[String] = ["village"]
 var inventory: Array[Dictionary] = []
+var collected_gear: Dictionary = {}
 const EQUIPMENT_SLOTS := ["weapon", "helmet", "necklace", "bracelet", "ring", "armor", "belt", "boots"]
 var equipment: Dictionary = {"weapon": {}, "helmet": {}, "necklace": {}, "bracelet": {}, "ring": {}, "armor": {}, "belt": {}, "boots": {}}
 var _experience_required: int = 100
@@ -68,7 +69,7 @@ func _equipment_stat(stat_name: String) -> float:
     for slot in EQUIPMENT_SLOTS:
         var item: Dictionary = equipment.get(slot, {})
         total += float(item.get(stat_name, 0.0))
-    return total
+    return total + _set_bonus_stat(stat_name)
 
 func get_equipment_score(item: Dictionary) -> float:
     return float(item.get("attack", 0)) * 4.0 + float(item.get("health", 0)) * 0.45 + float(item.get("defense", 0)) * 8.0 + float(item.get("critical_chance", 0)) * 12.0 + float(item.get("attack_speed", 0)) * 10.0 + float(item.get("quality_rank", 0)) * 2.0 + float(item.get("upgrade_level", 0)) * 1.5
@@ -77,6 +78,46 @@ func get_combat_power() -> int:
     var score := float(level) * 12.0 + attack_power * 4.0 + max_health * 0.35 + _equipment_stat("defense") * 8.0 + _equipment_stat("critical_chance") * 12.0 + _equipment_stat("attack_speed") * 10.0
     return roundi(score)
 
+func _active_set_counts() -> Dictionary:
+    var counts: Dictionary = {}
+    for slot in EQUIPMENT_SLOTS:
+        var item: Dictionary = equipment.get(slot, {})
+        var set_id := str(item.get("set_id", ""))
+        if not set_id.is_empty(): counts[set_id] = int(counts.get(set_id, 0)) + 1
+    return counts
+
+func _set_bonus_stat(stat_name: String) -> float:
+    var total := 0.0
+    var counts := _active_set_counts()
+    for set_id in counts:
+        var pieces := int(counts[set_id])
+        if pieces >= 2 and stat_name == "defense": total += 1.0
+        if pieces >= 4:
+            if stat_name == "attack": total += 4.0
+            if stat_name == "defense": total += 2.0
+        if pieces >= 6:
+            if stat_name == "health": total += 30.0
+            if stat_name == "critical_chance": total += 3.0
+        if pieces >= 8:
+            if stat_name == "attack": total += 8.0
+            if stat_name == "attack_speed": total += 5.0
+    return total
+
+func get_set_bonus_summary() -> String:
+    var lines := PackedStringArray()
+    var counts := _active_set_counts()
+    for set_id in ["forest", "ruins"]:
+        var pieces := int(counts.get(set_id, 0))
+        var label := "林地守望" if set_id == "forest" else "遗迹征服者"
+        lines.append("%s套装：%d/8 · 2件防御+1 · 4件攻击+4/防御+2 · 6件生命+30/暴击+3%% · 8件攻击+8/攻速+5%%" % [label, pieces])
+    return "\n".join(lines)
+
+func get_collection_summary() -> String:
+    var total := 0
+    for set_id in ["forest", "ruins"]:
+        for slot in EQUIPMENT_SLOTS:
+            if int(collected_gear.get("%s_%s" % [set_id, slot], 0)) > 0: total += 1
+    return "装备图鉴：%d / 16 件已发现" % total
 func get_class_name() -> String:
     match class_id:
         "mage": return "法师"
@@ -264,6 +305,8 @@ func teleport_to(destination: Vector2) -> void:
 func add_inventory_item(item: Dictionary) -> void:
     if item.is_empty():
         return
+    var item_id := str(item.get("item_id", ""))
+    if not item_id.is_empty(): collected_gear[item_id] = 1
     inventory.append(item.duplicate(true))
     inventory_changed.emit()
     save_game()
@@ -320,6 +363,8 @@ func get_equipment_summary() -> String:
         lines.append("%s：%s" % [labels[slot], str(item.get("name", "未装备"))])
     lines.append("攻击 %d · 生命 %d · 防御 %d · 暴击 %.1f%% · 攻速 +%.1f%%" % [roundi(attack_power), roundi(max_health), roundi(_equipment_stat("defense")), critical_chance * 100.0, _equipment_stat("attack_speed")])
     lines.append("角色战力：%d" % get_combat_power())
+    lines.append(get_set_bonus_summary())
+    lines.append(get_collection_summary())
     return "\n".join(lines)
 
 func _begin_respawn() -> void:
@@ -370,7 +415,8 @@ func save_game() -> void:
         "position_x": global_position.x,
         "position_y": global_position.y,
         "inventory": inventory_data,
-        "equipment": equipment.duplicate(true)
+        "equipment": equipment.duplicate(true),
+        "collected_gear": collected_gear.duplicate(true)
     }
     var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
     if file == null:
@@ -405,6 +451,8 @@ func _load_game() -> void:
             var saved_item: Variant = saved_equipment.get(slot, {})
             if saved_item is Dictionary:
                 equipment[slot] = saved_item.duplicate(true)
+    var saved_collection: Variant = parsed.get("collected_gear", {})
+    collected_gear = saved_collection.duplicate(true) if saved_collection is Dictionary else {}
     inventory.clear()
     var saved_inventory: Variant = parsed.get("inventory", [])
     if saved_inventory is Array:
