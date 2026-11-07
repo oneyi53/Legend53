@@ -143,7 +143,7 @@ func _spawn_equipment_drop(pos: Vector2, enemy: Node2D) -> void:
     # Elite enemies always guarantee at least rare-quality equipment.
     if enemy.is_elite:
         rank = maxi(rank, 3)
-    var multiplier := [1.0, 1.0, 1.18, 1.42, 1.78, 2.35][rank]
+    var multiplier: float = [1.0, 1.0, 1.18, 1.42, 1.78, 2.35][rank]
     var region_multiplier := 1.0 + (0.12 if zone_id == "deepwood" else (0.22 if zone_id == "ruins" else (0.35 if zone_id == "clearing" else 0.0)))
     multiplier *= region_multiplier
     var slot_pool := ["weapon", "helmet", "necklace", "bracelet", "ring", "armor", "belt", "boots"]

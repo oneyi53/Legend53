@@ -13,7 +13,7 @@ var _stick := Vector2.ZERO
 var _combat_director: Node
 
 func _ready() -> void:
-    mouse_filter = Control.MOUSE_FILTER.IGNORE
+    mouse_filter = 2
     _combat_director = get_tree().get_first_node_in_group("combat_director")
     queue_redraw()
 

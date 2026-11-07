@@ -431,7 +431,8 @@ func get_equipment_summary() -> String:
     lines.append("攻击 %d · 生命 %d · 防御 %d · 暴击 %.1f%% · 攻速 +%.1f%%" % [roundi(attack_power), roundi(max_health), roundi(_equipment_stat("defense")), critical_chance * 100.0, _equipment_stat("attack_speed")])
     lines.append("角色战力：%d" % get_combat_power())
     lines.append(get_set_bonus_summary())
-    lines.append(get_collection_summary())\n    lines.append(get_awaken_material_summary())
+    lines.append(get_collection_summary())
+    lines.append(get_awaken_material_summary())
     return "\n".join(lines)
 
 func _begin_respawn() -> void:
@@ -536,7 +537,9 @@ func _load_game() -> void:
     potions = maxi(0, int(parsed.get("potions", 0)))
     var saved_materials: Variant = parsed.get("materials", {})
     materials = saved_materials.duplicate(true) if saved_materials is Dictionary else {}
-    materials["rune_fragment"] = maxi(0, int(materials.get("rune_fragment", 0)))\n    for material_id in ["heartwood_essence", "ancient_rune", "ancient_core"]:\n        materials[material_id] = maxi(0, int(materials.get(material_id, 0)))
+    materials["rune_fragment"] = maxi(0, int(materials.get("rune_fragment", 0)))
+    for material_id in ["heartwood_essence", "ancient_rune", "ancient_core"]:
+        materials[material_id] = maxi(0, int(materials.get(material_id, 0)))
     class_id = str(parsed.get("class_id", "warrior"))
     if class_id not in ["warrior", "mage", "taoist"]:
         class_id = "warrior"

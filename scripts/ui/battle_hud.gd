@@ -257,7 +257,9 @@ func _open_npc_dialogue() -> void:
             _dialogue_secondary.visible = true
             _dialogue_secondary.text = "金币强化当前武器与护甲（各50金币）"
             _dialogue_forge_button.visible = true
-            _dialogue_forge_button.text = "符文锻造武器与护甲（每件100金币+2碎片）"\n            _dialogue_awaken_button.visible = true\n            _dialogue_awaken_button.text = "觉醒已装备武器/衣服/项链（区域材料+金币）"
+            _dialogue_forge_button.text = "符文锻造武器与护甲（每件100金币+2碎片）"
+            _dialogue_awaken_button.visible = true
+            _dialogue_awaken_button.text = "觉醒已装备武器/衣服/项链（区域材料+金币）"
         "merchant":
             _dialogue_text.text = "生命药剂售价 30 金币，使用后恢复 60 点生命。当前金币：%d，药剂：%d。" % [int(_player.get("gold")), int(_player.get("potions"))]
             _dialogue_action.text = "购买生命药剂 · 30金币"
@@ -411,7 +413,12 @@ func _refresh_inventory() -> void:
     lines.append(str(_player.call("get_collection_summary")))
     var materials: Dictionary = _player.get("materials")
     lines.append("金币：%d    生命药剂：%d" % [int(_player.get("gold")), int(_player.get("potions"))])
-    lines.append("锻造材料：符文碎片 ×%d" % int(materials.get("rune_fragment", 0)))\n    lines.append(str(_player.call("get_awaken_material_summary")))\n    for slot in ["weapon", "armor", "necklace"]:\n        var equipped_item: Dictionary = _player.get("equipment").get(slot, {})\n        if not equipped_item.is_empty():\n            lines.append("%s觉醒：+%d/3" % [str(equipped_item.get("name", slot)), int(equipped_item.get("awaken_level", 0))])
+    lines.append("锻造材料：符文碎片 ×%d" % int(materials.get("rune_fragment", 0)))
+    lines.append(str(_player.call("get_awaken_material_summary")))
+    for slot in ["weapon", "armor", "necklace"]:
+        var equipped_item: Dictionary = _player.get("equipment").get(slot, {})
+        if not equipped_item.is_empty():
+            lines.append("%s觉醒：+%d/3" % [str(equipped_item.get("name", slot)), int(equipped_item.get("awaken_level", 0))])
     _inventory_text.text = "\n".join(lines)
     _class_button.text = "当前：%s · 点击切换职业" % str(_player.call("get_class_name"))
     _potion_button.disabled = int(_player.get("potions")) <= 0 or float(_player.get("health")) >= float(_player.get("max_health"))

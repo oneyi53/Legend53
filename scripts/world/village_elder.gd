@@ -7,7 +7,11 @@ func _ready() -> void:
     queue_redraw()
 
 func _draw() -> void:
-    draw_ellipse(Vector2(0, 22), Vector2(24, 9), Color("#1d2b25"))
+    var shadow_points := PackedVector2Array()
+    for index in range(20):
+        var angle := TAU * float(index) / 20.0
+        shadow_points.append(Vector2(cos(angle) * 24.0, 22.0 + sin(angle) * 9.0))
+    draw_colored_polygon(shadow_points, Color("#1d2b25"))
     draw_colored_polygon(PackedVector2Array([Vector2(-15, 2),Vector2(15,2),Vector2(19,30),Vector2(-19,30)]), Color("#8b6548"))
     draw_colored_polygon(PackedVector2Array([Vector2(-13,-2),Vector2(13,-2),Vector2(10,14),Vector2(-10,14)]), Color("#d4b17a"))
     draw_circle(Vector2(0,-14), 12, Color("#d9ad83"))
