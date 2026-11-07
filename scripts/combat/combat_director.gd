@@ -78,6 +78,7 @@ func _on_enemy_defeated(enemy: Node2D) -> void:
         loot_message.emit("获得金币 +%d" % gold_reward)
     if enemy.is_boss:
         if is_instance_valid(player):
+            player.add_material("rune_fragment", 5)
             player.add_experience(250)
             player.add_inventory_item({"item_id":"boss_corrupted_tree_blade","name":"传说·古树守护者之刃","slot":"weapon","attack":22,"health":0,"quality":"legendary","quality_rank":5,"drop_source":"腐化古树首领"})
             player.add_inventory_item({"item_id":"boss_ancient_bark_armor","name":"传说·远古树皮甲","slot":"armor","attack":0,"health":110,"defense":2,"quality":"legendary","quality_rank":5,"drop_source":"腐化古树首领"})
@@ -86,7 +87,10 @@ func _on_enemy_defeated(enemy: Node2D) -> void:
     elif enemy.is_elite or randf() <= _equipment_drop_chance_for_enemy(enemy):
         _spawn_equipment_drop(enemy.global_position, enemy)
     if enemy.is_elite:
-        loot_message.emit("精英怪击败！额外经验与金币已获得")
+        var shard_count := randi_range(1, 2)
+        if is_instance_valid(player):
+            player.add_material("rune_fragment", shard_count)
+        loot_message.emit("精英怪击败！获得锻造符文碎片 ×%d" % shard_count)
     if current_target == enemy:
         current_target = null
         target_changed.emit(null)

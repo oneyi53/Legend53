@@ -22,6 +22,7 @@ var level: int = 1
 var experience: int = 0
 var gold: int = 100
 var potions: int = 0
+var materials: Dictionary = {"rune_fragment": 0}
 var class_id: String = "warrior"
 var discovered_regions: Array[String] = ["village"]
 var inventory: Array[Dictionary] = []
@@ -275,6 +276,35 @@ func upgrade_equipment(slot: String) -> bool:
     save_game()
     return true
 
+func add_material(material_id: String, amount: int) -> void:
+    if material_id.is_empty() or amount <= 0:
+        return
+    materials[material_id] = int(materials.get(material_id, 0)) + amount
+    inventory_changed.emit()
+    save_game()
+
+func forge_equipment(slot: String) -> bool:
+    if not EQUIPMENT_SLOTS.has(slot) or gold < 100 or int(materials.get("rune_fragment", 0)) < 2:
+        return false
+    var item: Dictionary = equipment.get(slot, {}).duplicate(true)
+    if item.is_empty() or int(item.get("forge_level", 0)) >= 3:
+        return false
+    gold -= 100
+    materials["rune_fragment"] = int(materials.get("rune_fragment", 0)) - 2
+    var forge_level := int(item.get("forge_level", 0)) + 1
+    item["forge_level"] = forge_level
+    var stat := _primary_stat_for_slot(slot)
+    var increase := 4.0 if stat == "attack" else (18.0 if stat == "health" else (2.0 if stat == "defense" else 2.0))
+    item[stat] = float(item.get(stat, 0.0)) + increase
+    equipment[slot] = item
+    health = minf(health, max_health)
+    gold_changed.emit(gold)
+    equipment_changed.emit()
+    health_changed.emit(health, max_health)
+    inventory_changed.emit()
+    save_game()
+    return true
+
 func buy_health_potion() -> bool:
     if gold < 30:
         return false
@@ -408,6 +438,7 @@ func save_game() -> void:
         "health": health,
         "gold": gold,
         "potions": potions,
+        "materials": materials.duplicate(true),
         "class_id": class_id,
         "discovered_regions": discovered_regions,
         "position_x": global_position.x,
@@ -464,6 +495,9 @@ func _load_game() -> void:
     health = clampf(health, 0.0, max_health)
     gold = maxi(0, int(parsed.get("gold", 100)))
     potions = maxi(0, int(parsed.get("potions", 0)))
+    var saved_materials: Variant = parsed.get("materials", {})
+    materials = saved_materials.duplicate(true) if saved_materials is Dictionary else {}
+    materials["rune_fragment"] = maxi(0, int(materials.get("rune_fragment", 0)))
     class_id = str(parsed.get("class_id", "warrior"))
     if class_id not in ["warrior", "mage", "taoist"]:
         class_id = "warrior"

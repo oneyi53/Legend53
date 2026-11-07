@@ -27,6 +27,7 @@ var _nearby_npc: Node2D
 var _service_npcs: Array[Node2D] = []
 var _dialogue_title: Label
 var _dialogue_secondary: Button
+var _dialogue_forge_button: Button
 var _currency_text: Label
 var _potion_button: Button
 var _skill_button: Button
@@ -217,6 +218,11 @@ func _build_hud() -> void:
     _dialogue_secondary.visible = false
     _dialogue_secondary.pressed.connect(_cycle_teleport)
     dialogue_box.add_child(_dialogue_secondary)
+    _dialogue_forge_button = Button.new()
+    _dialogue_forge_button.text = "锻造装备"
+    _dialogue_forge_button.visible = false
+    _dialogue_forge_button.pressed.connect(_forge_equipment)
+    dialogue_box.add_child(_dialogue_forge_button)
     var dialogue_close := Button.new()
     dialogue_close.text = "离开"
     dialogue_close.pressed.connect(func(): _dialogue_panel.visible = false)
@@ -236,6 +242,7 @@ func _open_npc_dialogue() -> void:
         return
     _dialogue_panel.visible = true
     _dialogue_secondary.visible = false
+    _dialogue_forge_button.visible = false
     if _nearby_npc == _npc:
         _dialogue_title.text = "守林村长"
         _dialogue_text.text = _quest_node.call("get_npc_dialogue")
@@ -248,7 +255,9 @@ func _open_npc_dialogue() -> void:
             _dialogue_text.text = "装备整理与强化：每次强化消耗 50 金币。武器 +2 攻击，护甲 +12 生命；每件装备最多强化 5 次。"
             _dialogue_action.text = "装备背包中更好的武器与护甲"
             _dialogue_secondary.visible = true
-            _dialogue_secondary.text = "强化当前武器与护甲（各50金币）"
+            _dialogue_secondary.text = "金币强化当前武器与护甲（各50金币）"
+            _dialogue_forge_button.visible = true
+            _dialogue_forge_button.text = "符文锻造武器与护甲（每件100金币+2碎片）"
         "merchant":
             _dialogue_text.text = "生命药剂售价 30 金币，使用后恢复 60 点生命。当前金币：%d，药剂：%d。" % [int(_player.get("gold")), int(_player.get("potions"))]
             _dialogue_action.text = "购买生命药剂 · 30金币"
@@ -292,6 +301,16 @@ func _on_dialogue_action() -> void:
         _currency_text.text = "金币 %d  ·  药剂 %d" % [int(_player.get("gold")), int(_player.get("potions"))]
     if _dialogue_panel.visible and is_instance_valid(_nearby_npc) and _nearby_npc != _npc:
         _open_npc_dialogue()
+
+func _forge_equipment() -> void:
+    if not is_instance_valid(_player):
+        return
+    var weapon_ok: bool = _player.call("forge_equipment", "weapon")
+    var armor_ok: bool = _player.call("forge_equipment", "armor")
+    var count := int(weapon_ok) + int(armor_ok)
+    _notice_text.text = "符文锻造完成：%d 件装备" % count if count > 0 else "锻造失败：每件需100金币、2枚符文碎片，且锻造等级最多+3"
+    _open_npc_dialogue()
+    _refresh_inventory()
 
 func _cycle_teleport() -> void:
     if is_instance_valid(_nearby_npc) and str(_nearby_npc.get("service_type")) == "blacksmith":
@@ -379,7 +398,9 @@ func _refresh_inventory() -> void:
     lines.append("套装效果与收集进度：")
     lines.append(str(_player.call("get_set_bonus_summary")))
     lines.append(str(_player.call("get_collection_summary")))
+    var materials: Dictionary = _player.get("materials")
     lines.append("金币：%d    生命药剂：%d" % [int(_player.get("gold")), int(_player.get("potions"))])
+    lines.append("锻造材料：符文碎片 ×%d（精英掉落；首领奖励更多）" % int(materials.get("rune_fragment", 0)))
     _inventory_text.text = "\n".join(lines)
     _class_button.text = "当前：%s · 点击切换职业" % str(_player.call("get_class_name"))
     _potion_button.disabled = int(_player.get("potions")) <= 0 or float(_player.get("health")) >= float(_player.get("max_health"))
