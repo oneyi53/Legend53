@@ -77,7 +77,8 @@ test("main quest counts only forest raiders, not wolves or elite guards",()=>{
 
 test("entering the altar creates a single boss and only after level unlock",()=>{
   const game=new Game();
-  game.player.y=1200;
+  game.level=8;
+  game.movePlayer(0,870);
   game.updateRegion();
   assert.equal(game.region,"altar");
   assert.equal(game.enemies.filter(enemy=>enemy.boss).length,1);
