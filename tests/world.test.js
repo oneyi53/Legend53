@@ -95,3 +95,23 @@ test("movement cannot cross a region gate before reaching its level",()=>{
   game.movePlayer(0,40);
   assert.equal(game.player.y,599);
 });
+
+test("loading an over-level saved position clamps it to the highest unlocked region",()=>{
+  values.set("hero-world-html5-save-v1",JSON.stringify({
+    version:2,classId:"warrior",level:1,x:450,y:1200,enemies:[],drops:[]
+  }));
+  const game=new Game();
+  assert.equal(game.player.y,559);
+  assert.equal(game.region,"entrance");
+  assert.ok(game.enemies.every(enemy=>enemy.regionId==="entrance"));
+});
+
+test("changing regions drops targets from the previous region",()=>{
+  const game=new Game();
+  game.player.y=450;game.updateRegion();
+  game.target=game.enemies.find(enemy=>enemy.alive);
+  assert.ok(game.target);
+  game.player.y=650;game.updateRegion();
+  assert.equal(game.target,null);
+  assert.ok(game.enemies.filter(enemy=>enemy.active).every(enemy=>enemy.regionId==="deepwood"));
+});
