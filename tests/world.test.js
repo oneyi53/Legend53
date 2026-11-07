@@ -24,7 +24,7 @@ test("only the current region spawns enemies and respects its active cap",()=>{
   assert.ok(game.enemies.every(enemy=>enemy.regionId==="entrance"&&enemy.active));
   game.player.y=650;
   game.updateRegion();
-  assert.equal(game.enemies.filter(enemy=>enemy.active).length,3);
+  assert.equal(game.enemies.filter(enemy=>enemy.active).length,4);
   assert.ok(game.enemies.filter(enemy=>enemy.active).every(enemy=>enemy.regionId==="deepwood"));
 });
 
