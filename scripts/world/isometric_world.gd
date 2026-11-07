@@ -252,7 +252,7 @@ func _draw_forest_landmarks() -> void:
         draw_circle(point + Vector2(4,-2), 3.5, Color("#e0a06c"))
         draw_line(point + Vector2(-1,2),point + Vector2(-1,10),Color("#e0d3b4"),1.8,true)
     for point in [Vector2(332,492),Vector2(385,685),Vector2(326,865),Vector2(386,1048)]:
-        draw_ellipse(point + Vector2(0,5),Vector2(12,5),Color("#202b25",0.35))
+        _draw_ellipse(point + Vector2(0,5),Vector2(12,5),Color("#202b25",0.35))
         draw_colored_polygon(PackedVector2Array([point+Vector2(-12,0),point+Vector2(-7,-7),point+Vector2(7,-7),point+Vector2(12,0),point+Vector2(7,7),point+Vector2(-8,6)]),Color("#776d59"))
         draw_line(point+Vector2(-5,-4),point+Vector2(4,-5),Color("#b3a58a",0.65),1.5,true)
 
@@ -269,3 +269,10 @@ func _draw_ruins_and_altar() -> void:
     draw_arc(Vector2(360,1378), 47, 0.0, TAU, 48, Color("#c18b56"), 4.0, true)
     draw_circle(Vector2(360,1378), 13, Color("#9e654b"))
     draw_circle(Vector2(360,1378), 6, Color("#f0b66c"))
+
+func _draw_ellipse(center: Vector2, radii: Vector2, fill: Color) -> void:
+    var points := PackedVector2Array()
+    for index in range(28):
+        var angle := TAU * float(index) / 28.0
+        points.append(center + Vector2(cos(angle) * radii.x, sin(angle) * radii.y))
+    draw_colored_polygon(points, fill)

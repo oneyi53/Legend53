@@ -30,7 +30,7 @@ func _draw() -> void:
         weapon = Color("#d6e7bc")
 
     # Contact shadow and trailing mantle.
-    draw_ellipse(Vector2(0, 15), Vector2(15, 5), Color(0.02, 0.04, 0.03, 0.42))
+    _draw_ellipse(Vector2(0, 15), Vector2(15, 5), Color(0.02, 0.04, 0.03, 0.42))
     draw_colored_polygon(PackedVector2Array([Vector2(-8,-8+bob),Vector2(-16,1+bob),Vector2(-13,16+bob),Vector2(-4,12+bob),Vector2(0,17+bob),Vector2(11,14+bob),Vector2(15,1+bob),Vector2(7,-9+bob)]), cape.darkened(0.18))
     draw_colored_polygon(PackedVector2Array([Vector2(-8,-4+bob),Vector2(-13,3+bob),Vector2(-8,12+bob),Vector2(-2,9+bob)]), cape.lightened(0.12))
     draw_line(Vector2(0,-7+bob),Vector2(0,12+bob),cape.lightened(0.24),1.2,true)
@@ -82,3 +82,10 @@ func _draw() -> void:
 
     # Small highlights keep the sprite readable against forest ground.
     draw_arc(Vector2(0,4+bob),13.0,0.12,PI-0.12,20,Color(1.0,0.86,0.58,0.62),1.2,true)
+
+func _draw_ellipse(center: Vector2, radii: Vector2, fill: Color) -> void:
+    var points := PackedVector2Array()
+    for index in range(28):
+        var angle := TAU * float(index) / 28.0
+        points.append(center + Vector2(cos(angle) * radii.x, sin(angle) * radii.y))
+    draw_colored_polygon(points, fill)
