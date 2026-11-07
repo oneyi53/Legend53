@@ -74,15 +74,6 @@ theme_override_colors/font_color = Color(0.94, 0.96, 0.91, 1)
 theme_override_font_sizes/font_size = 22
 text = "HERO WORLD  |  CHAPTER 01"
 
-[node name="SubStatus" type="Label" parent="HUD"]
-offset_left = 24.0
-offset_top = 58.0
-offset_right = 696.0
-offset_bottom = 92.0
-theme_override_colors/font_color = Color(0.72, 0.82, 0.74, 1)
-theme_override_font_sizes/font_size = 15
-text = "THE FORGOTTEN GROVE  |  P2 COMBAT TEST"
-
 [node name="TouchControls" type="Control" parent="HUD"]
 layout_mode = 3
 anchors_preset = 15

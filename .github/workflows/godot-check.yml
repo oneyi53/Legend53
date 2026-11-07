@@ -40,7 +40,8 @@ jobs:
       - name: Install virtual display and software renderer
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb libgl1-mesa-dri
+          sudo apt-get install -y xvfb libgl1-mesa-dri fonts-noto-cjk
+          fc-cache -f
 
       - name: Capture and inspect gameplay screenshots
         env:

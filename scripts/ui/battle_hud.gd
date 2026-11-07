@@ -157,7 +157,7 @@ func _build_hud() -> void:
     root.add_child(_npc_button)
     _inventory_panel = PanelContainer.new()
     _inventory_panel.position = Vector2(24, 312)
-    _inventory_panel.size = Vector2(420, 380)
+    _inventory_panel.size = Vector2(420, 860)
     _inventory_panel.visible = false
     _inventory_panel.mouse_filter = Control.MOUSE_FILTER_STOP
     root.add_child(_inventory_panel)
@@ -172,7 +172,7 @@ func _build_hud() -> void:
     _class_button.pressed.connect(_cycle_class)
     content.add_child(_class_button)
     _inventory_text = Label.new()
-    _inventory_text.custom_minimum_size = Vector2(380, 160)
+    _inventory_text.custom_minimum_size = Vector2(380, 360)
     _inventory_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     content.add_child(_inventory_text)
     _potion_button = Button.new()
