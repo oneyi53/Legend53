@@ -195,11 +195,15 @@ func _draw_world_paths() -> void:
     draw_polyline(path_points, Color("#b69a6b", 0.36), 25.0, true)
 
 func _draw_tree(point: Vector2, size: float, canopy: Color) -> void:
-    draw_circle(point + Vector2(0,size * 0.55), size * 0.72, Color("#202d27", 0.35))
-    draw_line(point + Vector2(0,size * 0.25), point + Vector2(0,-size * 0.42), Color("#60452f"), maxf(3.0,size * 0.15), true)
-    draw_circle(point + Vector2(-size * 0.27,-size * 0.35), size * 0.42, canopy.darkened(0.18))
-    draw_circle(point + Vector2(size * 0.22,-size * 0.46), size * 0.48, canopy)
-    draw_circle(point + Vector2(0,-size * 0.72), size * 0.39, canopy.lightened(0.12))
+    draw_circle(point + Vector2(2,size * 0.62), size * 0.78, Color("#17231d", 0.42))
+    draw_line(point + Vector2(0,size * 0.25), point + Vector2(0,-size * 0.42), Color("#503a2b"), maxf(4.0,size * 0.17), true)
+    draw_line(point + Vector2(-2,size * 0.12), point + Vector2(-size * 0.22,-size * 0.18), Color("#6d4a30"), maxf(2.0,size * 0.07), true)
+    draw_line(point + Vector2(1,size * 0.04), point + Vector2(size * 0.24,-size * 0.22), Color("#765237"), maxf(2.0,size * 0.07), true)
+    draw_circle(point + Vector2(-size * 0.27,-size * 0.35), size * 0.46, canopy.darkened(0.24))
+    draw_circle(point + Vector2(size * 0.22,-size * 0.46), size * 0.50, canopy)
+    draw_circle(point + Vector2(0,-size * 0.72), size * 0.42, canopy.lightened(0.12))
+    draw_circle(point + Vector2(-size * 0.12,-size * 0.82), size * 0.15, canopy.lightened(0.28))
+    draw_circle(point + Vector2(size * 0.34,-size * 0.55), size * 0.12, canopy.lightened(0.22))
 
 func _draw_village_settlement() -> void:
     draw_rect(Rect2(170,214,108,62), Color("#594331"))
@@ -211,10 +215,23 @@ func _draw_village_settlement() -> void:
     draw_rect(Rect2(451,282,55,30), Color("#6d5037"))
     draw_rect(Rect2(458,289,18,15), Color("#b58b58"))
     draw_rect(Rect2(482,289,17,15), Color("#9b7448"))
+    # Roof shingles, timber frame and warm window glow.
+    draw_line(Vector2(169,220),Vector2(224,184),Color("#c18c58"),2.0,true)
+    draw_line(Vector2(224,184),Vector2(281,220),Color("#c18c58"),2.0,true)
+    for x in [180.0,194.0,208.0,222.0,236.0,250.0,264.0]:
+        draw_line(Vector2(x,215),Vector2(x + 4.0,220),Color("#6c4734",0.75),1.2,true)
+    draw_rect(Rect2(181,231,16,17),Color("#e0bd78",0.28))
+    draw_rect(Rect2(250,231,16,17),Color("#e0bd78",0.28))
     draw_circle(Vector2(355,260), 23, Color("#554b3a"))
     draw_circle(Vector2(355,258), 17, Color("#82908a"))
     draw_circle(Vector2(355,258), 11, Color("#293d3d"))
     draw_line(Vector2(331,238), Vector2(379,238), Color("#8c7049"), 4.0)
+    draw_arc(Vector2(355,258),20.0,PI,TAU,32,Color("#c8b18a"),2.0,true)
+    # Lanterns at the village gate.
+    for lamp_x in [310.0,410.0]:
+        draw_line(Vector2(lamp_x,352),Vector2(lamp_x,376),Color("#79583a"),3.0,true)
+        draw_circle(Vector2(lamp_x,350),5.0,Color("#e6b86c",0.25))
+        draw_circle(Vector2(lamp_x,350),2.5,Color("#ffd58a"))
 
 func _draw_forest_landmarks() -> void:
     var trees := [[Vector2(145,472),25.0],[Vector2(555,480),29.0],[Vector2(205,560),34.0],[Vector2(520,615),31.0],[Vector2(155,700),35.0],[Vector2(570,745),36.0],[Vector2(235,835),30.0],[Vector2(500,900),34.0],[Vector2(135,1010),32.0],[Vector2(570,1090),35.0]]
@@ -224,16 +241,28 @@ func _draw_forest_landmarks() -> void:
         var canopy := Color("#456b49") if point.y < 800.0 else Color("#5b5742")
         _draw_tree(point, tree_size, canopy)
     draw_line(Vector2(250,640), Vector2(277,655), Color("#684a32"), 8.0, true)
+    # Ferns, mushrooms and weathered trail stones add scale to the forest.
+    for point in [Vector2(182,612),Vector2(536,690),Vector2(205,790),Vector2(518,850),Vector2(160,1080)]:
+        draw_line(point,point + Vector2(-7,-14),Color("#77945c"),2.0,true)
+        draw_line(point,point + Vector2(5,-17),Color("#8da66a"),2.0,true)
+        draw_line(point,point + Vector2(12,-10),Color("#6f8a55"),2.0,true)
     for point in [Vector2(292,575),Vector2(432,735),Vector2(286,950)]:
         draw_line(point, point + Vector2(0,7), Color("#e4d4b8"), 2.0, true)
         draw_circle(point + Vector2(-3,-1), 4.0, Color("#c66f68"))
         draw_circle(point + Vector2(4,-2), 3.5, Color("#e0a06c"))
+        draw_line(point + Vector2(-1,2),point + Vector2(-1,10),Color("#e0d3b4"),1.8,true)
+    for point in [Vector2(332,492),Vector2(385,685),Vector2(326,865),Vector2(386,1048)]:
+        draw_ellipse(point + Vector2(0,5),Vector2(12,5),Color("#202b25",0.35))
+        draw_colored_polygon(PackedVector2Array([point+Vector2(-12,0),point+Vector2(-7,-7),point+Vector2(7,-7),point+Vector2(12,0),point+Vector2(7,7),point+Vector2(-8,6)]),Color("#776d59"))
+        draw_line(point+Vector2(-5,-4),point+Vector2(4,-5),Color("#b3a58a",0.65),1.5,true)
 
 func _draw_ruins_and_altar() -> void:
     for point in [Vector2(190,930),Vector2(525,970),Vector2(220,1080),Vector2(500,1110)]:
         draw_rect(Rect2(point.x - 7,point.y - 28,14,38), Color("#777466"))
         draw_rect(Rect2(point.x - 11,point.y - 31,22,6), Color("#aaa28a"))
         draw_line(point + Vector2(-3,-22), point + Vector2(4,2), Color("#c0b99f",0.5), 2.0)
+        draw_line(point + Vector2(-7,-9),point + Vector2(7,-9),Color("#4c5149"),2.0,true)
+        draw_circle(point + Vector2(0,-25),2.0,Color("#b58c5d"))
     draw_circle(Vector2(360,1390), 72, Color("#292e2b",0.48))
     draw_circle(Vector2(360,1382), 58, Color("#71634e"))
     draw_circle(Vector2(360,1378), 42, Color("#403c36"))

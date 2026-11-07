@@ -101,24 +101,38 @@ func _clear_stick() -> void:
 
 func _draw() -> void:
     var center := _joystick_center()
-    draw_circle(center, JOYSTICK_RADIUS, Color(0.05, 0.09, 0.08, 0.48))
-    draw_arc(center, JOYSTICK_RADIUS, 0.0, TAU, 48, Color(0.75, 0.86, 0.76, 0.62), 3.0, true)
+    draw_circle(center + Vector2(0, 5), JOYSTICK_RADIUS + 3.0, Color(0.0, 0.0, 0.0, 0.28))
+    draw_circle(center, JOYSTICK_RADIUS, Color("#17231f", 0.76))
+    draw_arc(center, JOYSTICK_RADIUS, 0.0, TAU, 48, Color("#d5c39b", 0.82), 3.0, true)
+    draw_arc(center, JOYSTICK_RADIUS - 9.0, 0.0, TAU, 48, Color("#8fa18a", 0.32), 1.0, true)
+    draw_line(center + Vector2(-30, 0), center + Vector2(30, 0), Color("#c6d2bd", 0.18), 1.0)
+    draw_line(center + Vector2(0, -30), center + Vector2(0, 30), Color("#c6d2bd", 0.18), 1.0)
     var stick_offset := Vector2((_stick.x - _stick.y) * 0.5, _stick.x + _stick.y)
     if stick_offset.length_squared() > 0.0:
         stick_offset = stick_offset.normalized() * JOYSTICK_RADIUS * 0.58
-    draw_circle(center + stick_offset, 28.0, Color(0.72, 0.84, 0.72, 0.82))
+    draw_circle(center + stick_offset + Vector2(0, 3), 29.0, Color(0.0, 0.0, 0.0, 0.28))
+    draw_circle(center + stick_offset, 27.0, Color("#aebd9d", 0.94))
+    draw_arc(center + stick_offset, 27.0, 0.0, TAU, 36, Color("#f1e2bd", 0.92), 2.0, true)
+    draw_circle(center + stick_offset + Vector2(-7, -8), 5.0, Color("#eff3dc", 0.36))
 
     var centers := _button_centers()
-    draw_circle(centers.attack, BUTTON_RADIUS, Color("#9a493b"))
-    draw_arc(centers.attack, BUTTON_RADIUS, 0.0, TAU, 36, Color("#e8b18a"), 3.0, true)
-    draw_string(ThemeDB.fallback_font, centers.attack + Vector2(-19.0, 6.0), "ATK", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color.WHITE)
+    draw_circle(centers.attack + Vector2(0, 5), BUTTON_RADIUS + 2.0, Color(0.0, 0.0, 0.0, 0.34))
+    draw_circle(centers.attack, BUTTON_RADIUS, Color("#8f3e35"))
+    draw_circle(centers.attack, BUTTON_RADIUS - 6.0, Color("#b95a48"))
+    draw_arc(centers.attack, BUTTON_RADIUS, 0.0, TAU, 40, Color("#f0c18e"), 3.0, true)
+    draw_line(centers.attack + Vector2(-14, -9), centers.attack + Vector2(12, 13), Color("#ffe0b6"), 4.0, true)
+    draw_line(centers.attack + Vector2(1, -17), centers.attack + Vector2(17, -1), Color("#ffe0b6"), 2.0, true)
+    draw_string(ThemeDB.fallback_font, centers.attack + Vector2(-16.0, 54.0), "攻击", HORIZONTAL_ALIGNMENT_CENTER, 40, 13, Color("#f8ead4"))
 
     var auto_on := false
     if is_instance_valid(_combat_director):
         auto_on = _combat_director.auto_combat_enabled
-    draw_circle(centers.auto, BUTTON_RADIUS * 0.82, Color("#547c56") if auto_on else Color("#46534b"))
-    draw_arc(centers.auto, BUTTON_RADIUS * 0.82, 0.0, TAU, 36, Color("#b9d0aa"), 2.0, true)
-    draw_string(ThemeDB.fallback_font, centers.auto + Vector2(-19.0, 6.0), "AUTO", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.WHITE)
+    draw_circle(centers.auto + Vector2(0, 4), BUTTON_RADIUS * 0.86, Color(0.0, 0.0, 0.0, 0.30))
+    draw_circle(centers.auto, BUTTON_RADIUS * 0.82, Color("#557d59") if auto_on else Color("#3c4b43"))
+    draw_arc(centers.auto, BUTTON_RADIUS * 0.82, 0.0, TAU, 36, Color("#c8d8b5"), 2.5, true)
+    draw_arc(centers.auto, BUTTON_RADIUS * 0.58, 0.0, TAU, 36, Color("#e1e9d2", 0.45), 1.0, true)
+    draw_string(ThemeDB.fallback_font, centers.auto + Vector2(-20.0, 5.0), "AUTO", HORIZONTAL_ALIGNMENT_LEFT, 42, 12, Color.WHITE)
+    draw_string(ThemeDB.fallback_font, centers.auto + Vector2(-18.0, 48.0), "自动", HORIZONTAL_ALIGNMENT_CENTER, 40, 12, Color("#e6eadb"))
 
 func _exit_tree() -> void:
     _clear_stick()

@@ -104,28 +104,36 @@ func _build_hud() -> void:
     root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     root.mouse_filter = Control.MOUSE_FILTER_IGNORE
     add_child(root)
+    _apply_hud_theme(root)
+    _make_card(root, Vector2(16, 46), Vector2(438, 214), Color("#17231f", 0.88))
+    _make_card(root, Vector2(16, 736), Vector2(510, 78), Color("#17231f", 0.82))
     _health_text = _make_label(root, Vector2(24, 94), Vector2(280, 24), 16, Color("#f4e9d2"))
     _health_bar = ProgressBar.new()
     _health_bar.position = Vector2(24, 120)
     _health_bar.size = Vector2(260, 14)
     _health_bar.show_percentage = false
+    _health_bar.add_theme_stylebox_override("background", _make_style(Color("#101915"), Color("#53685b"), 7, 1))
+    _health_bar.add_theme_stylebox_override("fill", _make_style(Color("#b94f48"), Color("#e28a70"), 7, 1))
     root.add_child(_health_bar)
     _experience_text = _make_label(root, Vector2(24, 139), Vector2(300, 20), 13, Color("#d8e3c8"))
     _experience_bar = ProgressBar.new()
     _experience_bar.position = Vector2(24, 161)
     _experience_bar.size = Vector2(260, 9)
     _experience_bar.show_percentage = false
+    _experience_bar.add_theme_stylebox_override("background", _make_style(Color("#101915"), Color("#53685b"), 5, 1))
+    _experience_bar.add_theme_stylebox_override("fill", _make_style(Color("#c6a65e"), Color("#f1d58b"), 5, 1))
     root.add_child(_experience_bar)
     _mode_text = _make_label(root, Vector2(24, 180), Vector2(240, 22), 14, Color("#d8e3c8"))
     _target_text = _make_label(root, Vector2(24, 205), Vector2(300, 22), 13, Color("#e4b69a"))
     _target_text.text = "目标：未锁定"
     _notice_text = _make_label(root, Vector2(24, 232), Vector2(520, 22), 13, Color("#8fe6b1"))
     _skill_button = Button.new()
-    _skill_button.position = Vector2(536, 650)
-    _skill_button.size = Vector2(160, 58)
+    _skill_button.position = Vector2(520, 982)
+    _skill_button.size = Vector2(176, 68)
     _skill_button.text = "旋风斩"
     _skill_button.mouse_filter = Control.MOUSE_FILTER_STOP
     _skill_button.pressed.connect(_cast_skill)
+    _style_button(_skill_button, true)
     root.add_child(_skill_button)
     _region_text = _make_label(root, Vector2(24, 74), Vector2(320, 20), 13, Color("#e2d2a9"))
     _region_text.text = "区域：林间入口 · 推荐等级 1"
@@ -137,108 +145,178 @@ func _build_hud() -> void:
     var save_button := Button.new()
     save_button.text = "立即存档"
     save_button.position = Vector2(570, 24)
-    save_button.size = Vector2(126, 38)
+    save_button.size = Vector2(116, 40)
+    save_button.position = Vector2(580, 24)
     save_button.mouse_filter = Control.MOUSE_FILTER_STOP
     save_button.pressed.connect(_save_now)
+    _style_button(save_button)
     root.add_child(save_button)
     var open_button := Button.new()
     open_button.text = "背包 / 装备"
     open_button.position = Vector2(24, 266)
-    open_button.size = Vector2(132, 38)
+    open_button.size = Vector2(150, 42)
     open_button.mouse_filter = Control.MOUSE_FILTER_STOP
     open_button.pressed.connect(_toggle_inventory)
+    _style_button(open_button)
     root.add_child(open_button)
     _npc_button = Button.new()
     _npc_button.text = "交谈"
     _npc_button.position = Vector2(550, 748)
-    _npc_button.size = Vector2(126, 44)
+    _npc_button.position = Vector2(548, 746)
+    _npc_button.size = Vector2(148, 52)
     _npc_button.visible = false
     _npc_button.mouse_filter = Control.MOUSE_FILTER_STOP
     _npc_button.pressed.connect(_open_npc_dialogue)
+    _style_button(_npc_button, true)
     root.add_child(_npc_button)
     _inventory_panel = PanelContainer.new()
-    _inventory_panel.position = Vector2(24, 312)
-    _inventory_panel.size = Vector2(420, 760)
+    _inventory_panel.position = Vector2(20, 190)
+    _inventory_panel.size = Vector2(680, 990)
     _inventory_panel.visible = false
     _inventory_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+    _inventory_panel.add_theme_stylebox_override("panel", _make_style(Color("#17231f", 0.98), Color("#c4a66d"), 18, 2))
     root.add_child(_inventory_panel)
     var content := VBoxContainer.new()
+    content.add_theme_constant_override("separation", 8)
     _inventory_panel.add_child(content)
     var title := Label.new()
-    title.text = "角色装备与背包"
-    title.add_theme_font_size_override("font_size", 20)
+    title.text = "角色 · 装备与背包"
+    title.add_theme_font_size_override("font_size", 24)
+    title.add_theme_color_override("font_color", Color("#f2dfb5"))
     content.add_child(title)
     _class_button = Button.new()
     _class_button.text = "切换职业"
     _class_button.pressed.connect(_cycle_class)
+    _style_button(_class_button)
     content.add_child(_class_button)
     _skill_upgrade_button = Button.new()
     _skill_upgrade_button.text = "升级职业技能"
     _skill_upgrade_button.pressed.connect(_upgrade_class_skill)
+    _style_button(_skill_upgrade_button)
     content.add_child(_skill_upgrade_button)
     var inventory_scroll := ScrollContainer.new()
-    inventory_scroll.custom_minimum_size = Vector2(380, 390)
+    inventory_scroll.custom_minimum_size = Vector2(620, 480)
     inventory_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     inventory_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
     content.add_child(inventory_scroll)
     _inventory_text = Label.new()
-    _inventory_text.custom_minimum_size = Vector2(380, 520)
+    _inventory_text.custom_minimum_size = Vector2(620, 700)
     _inventory_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     _inventory_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     inventory_scroll.add_child(_inventory_text)
     _potion_button = Button.new()
     _potion_button.text = "使用生命药剂（恢复60）"
     _potion_button.pressed.connect(_use_potion)
+    _style_button(_potion_button)
     content.add_child(_potion_button)
     _weapon_button = Button.new()
     _weapon_button.text = "装备更强武器"
     _weapon_button.pressed.connect(_equip_weapon)
+    _style_button(_weapon_button)
     content.add_child(_weapon_button)
     _armor_button = Button.new()
     _armor_button.text = "装备更强护甲"
     _armor_button.pressed.connect(_equip_armor)
+    _style_button(_armor_button)
     content.add_child(_armor_button)
     _equip_all_button = Button.new()
     _equip_all_button.text = "自动穿戴全部部位最佳装备"
     _equip_all_button.pressed.connect(_equip_all)
+    _style_button(_equip_all_button, true)
     content.add_child(_equip_all_button)
     var close_button := Button.new()
     close_button.text = "关闭"
     close_button.pressed.connect(_toggle_inventory)
+    _style_button(close_button)
     content.add_child(close_button)
     _dialogue_panel = PanelContainer.new()
-    _dialogue_panel.position = Vector2(70, 430)
-    _dialogue_panel.size = Vector2(580, 250)
+    _dialogue_panel.position = Vector2(32, 390)
+    _dialogue_panel.size = Vector2(656, 430)
     _dialogue_panel.visible = false
     _dialogue_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+    _dialogue_panel.add_theme_stylebox_override("panel", _make_style(Color("#17231f", 0.98), Color("#c4a66d"), 18, 2))
     root.add_child(_dialogue_panel)
     var dialogue_box := VBoxContainer.new()
+    dialogue_box.add_theme_constant_override("separation", 8)
     _dialogue_panel.add_child(dialogue_box)
     _dialogue_title = Label.new()
     _dialogue_title.text = "守林村长"
-    _dialogue_title.add_theme_font_size_override("font_size", 21)
+    _dialogue_title.add_theme_font_size_override("font_size", 24)
+    _dialogue_title.add_theme_color_override("font_color", Color("#f2dfb5"))
     dialogue_box.add_child(_dialogue_title)
     _dialogue_text = Label.new()
-    _dialogue_text.custom_minimum_size = Vector2(530, 120)
+    _dialogue_text.custom_minimum_size = Vector2(600, 112)
     _dialogue_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     dialogue_box.add_child(_dialogue_text)
     _dialogue_action = Button.new()
     _dialogue_action.pressed.connect(_on_dialogue_action)
+    _style_button(_dialogue_action, true)
     dialogue_box.add_child(_dialogue_action)
     _dialogue_secondary = Button.new()
     _dialogue_secondary.text = "切换目的地"
     _dialogue_secondary.visible = false
     _dialogue_secondary.pressed.connect(_cycle_teleport)
+    _style_button(_dialogue_secondary)
     dialogue_box.add_child(_dialogue_secondary)
     _dialogue_forge_button = Button.new()
     _dialogue_forge_button.text = "锻造装备"
     _dialogue_forge_button.visible = false
     _dialogue_forge_button.pressed.connect(_forge_equipment)
+    _style_button(_dialogue_forge_button)
     dialogue_box.add_child(_dialogue_forge_button)
+    _dialogue_awaken_button = Button.new()
+    _dialogue_awaken_button.text = "觉醒装备"
+    _dialogue_awaken_button.visible = false
+    _dialogue_awaken_button.pressed.connect(_awaken_equipment)
+    _style_button(_dialogue_awaken_button)
+    dialogue_box.add_child(_dialogue_awaken_button)
     var dialogue_close := Button.new()
     dialogue_close.text = "离开"
     dialogue_close.pressed.connect(func(): _dialogue_panel.visible = false)
+    _style_button(dialogue_close)
     dialogue_box.add_child(dialogue_close)
+
+func _make_style(fill: Color, border: Color, radius: int, border_width: int = 1) -> StyleBoxFlat:
+    var style := StyleBoxFlat.new()
+    style.bg_color = fill
+    style.border_color = border
+    style.set_border_width_all(border_width)
+    style.set_corner_radius_all(radius)
+    style.shadow_color = Color(0, 0, 0, 0.28)
+    style.shadow_size = 5
+    style.content_margin_left = 12.0
+    style.content_margin_right = 12.0
+    style.content_margin_top = 7.0
+    style.content_margin_bottom = 7.0
+    return style
+
+func _style_button(button: Button, accent: bool = false) -> void:
+    var fill := Color("#7b5737") if accent else Color("#35483d")
+    var border := Color("#e4c27e") if accent else Color("#80937a")
+    button.add_theme_stylebox_override("normal", _make_style(fill, border, 10, 1))
+    button.add_theme_stylebox_override("hover", _make_style(fill.lightened(0.16), border.lightened(0.18), 10, 2))
+    button.add_theme_stylebox_override("pressed", _make_style(fill.darkened(0.20), border, 10, 2))
+    button.add_theme_stylebox_override("disabled", _make_style(Color("#29332e"), Color("#46534b"), 10, 1))
+    button.add_theme_color_override("font_color", Color("#f4ead6"))
+    button.add_theme_color_override("font_hover_color", Color.WHITE)
+    button.add_theme_color_override("font_disabled_color", Color("#8b958b"))
+    button.add_theme_font_size_override("font_size", 15)
+    button.custom_minimum_size.y = 42
+
+func _make_card(parent: Control, pos: Vector2, dimensions: Vector2, fill: Color) -> PanelContainer:
+    var card := PanelContainer.new()
+    card.position = pos
+    card.size = dimensions
+    card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    card.add_theme_stylebox_override("panel", _make_style(fill, Color("#8c9878", 0.72), 16, 1))
+    parent.add_child(card)
+    return card
+
+func _apply_hud_theme(root: Control) -> void:
+    var theme := Theme.new()
+    theme.set_color("font_color", "Label", Color("#eee5d2"))
+    theme.set_font_size("font_size", "Label", 15)
+    root.theme = theme
 
 func _make_label(parent: Control, pos: Vector2, dimensions: Vector2, size: int, color: Color) -> Label:
     var label := Label.new()
@@ -255,6 +333,7 @@ func _open_npc_dialogue() -> void:
     _dialogue_panel.visible = true
     _dialogue_secondary.visible = false
     _dialogue_forge_button.visible = false
+    _dialogue_awaken_button.visible = false
     if _nearby_npc == _npc:
         _dialogue_title.text = "守林村长"
         _dialogue_text.text = _quest_node.call("get_npc_dialogue")

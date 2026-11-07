@@ -29,6 +29,8 @@ var _boss_base_interval := 1.45
 var _boss_windup := 0.0
 var _boss_telegraph_radius := 158.0
 var _boss_attack_pending := false
+var _visual_clock := 0.0
+var _was_targeted := false
 
 func _ready() -> void:
     health = max_health
@@ -36,6 +38,14 @@ func _ready() -> void:
     _player = get_tree().get_first_node_in_group("player") as Node2D
     scale = Vector2(1.16, 1.16)
     queue_redraw()
+
+func _process(delta: float) -> void:
+    _visual_clock += delta
+    var director := get_tree().get_first_node_in_group("combat_director")
+    var targeted := is_instance_valid(director) and director.get("current_target") == self
+    if targeted != _was_targeted or is_boss:
+        _was_targeted = targeted
+        queue_redraw()
 
 func _physics_process(delta: float) -> void:
     if _is_defeated:
@@ -160,6 +170,10 @@ func take_damage(amount: float) -> void:
         queue_free()
 
 func _draw() -> void:
+    if _was_targeted:
+        var pulse := 0.62 + 0.22 * sin(_visual_clock * 5.0)
+        draw_arc(Vector2(0, 3), 29.0, 0.0, TAU, 40, Color(1.0, 0.78, 0.32, pulse), 2.6, true)
+        draw_colored_polygon(PackedVector2Array([Vector2(-5,-52),Vector2(0,-61),Vector2(5,-52)]),Color("#f4d27a",pulse))
     if is_elite:
         var elite_color := Color("#75d9e8") if elite_type == "swift" else (Color("#d5c7a0") if elite_type == "guardian" else Color("#e78a58"))
         draw_arc(Vector2(0, 1), 27.0, 0.0, TAU, 36, elite_color, 2.2, true)
@@ -172,8 +186,13 @@ func _draw() -> void:
         draw_colored_polygon(PackedVector2Array([Vector2(-13, -17), Vector2(-30, -37), Vector2(-27, -51), Vector2(-20, -39), Vector2(-8, -28)]), Color("#79573a"))
         draw_colored_polygon(PackedVector2Array([Vector2(12, -19), Vector2(29, -43), Vector2(27, -54), Vector2(19, -42), Vector2(6, -28)]), Color("#79573a"))
         draw_colored_polygon(PackedVector2Array([Vector2(-5, -28), Vector2(-2, -45), Vector2(4, -51), Vector2(7, -34)]), Color("#98704a"))
-        draw_circle(Vector2(-7, -10), 3.3, Color("#e4a64c"))
-        draw_circle(Vector2(8, -10), 3.3, Color("#e4a64c"))
+        draw_circle(Vector2(-7, -10), 5.0, Color("#a9d46c",0.16 + 0.10 * sin(_visual_clock * 3.0)))
+        draw_circle(Vector2(8, -10), 5.0, Color("#a9d46c",0.16 + 0.10 * sin(_visual_clock * 3.0)))
+        draw_circle(Vector2(-7, -10), 2.8, Color("#e4a64c"))
+        draw_circle(Vector2(8, -10), 2.8, Color("#e4a64c"))
+        draw_line(Vector2(-12,-28),Vector2(-23,-39),Color("#a17b4c"),3.0,true)
+        draw_line(Vector2(13,-28),Vector2(24,-40),Color("#a17b4c"),3.0,true)
+        draw_arc(Vector2(0,4),24.0,0.15,PI-0.15,24,Color("#a7bd62",0.72),2.0,true)
         draw_line(Vector2(-7, 0), Vector2(8, 0), Color("#30231f"), 2.0, true)
         draw_arc(Vector2(0, -2), 18.0, PI, TAU, 24, Color("#a7bd62"), 2.0, true)
     else:
@@ -187,6 +206,12 @@ func _draw() -> void:
         draw_line(Vector2(-12, 3), Vector2(-21, 12), Color("#49352f"), 4.0, true)
         draw_line(Vector2(-21, 12), Vector2(-25, 8), Color("#49352f"), 3.0, true)
         draw_colored_polygon(PackedVector2Array([Vector2(-17, -6), Vector2(-11, -14), Vector2(7, -15), Vector2(17, -7), Vector2(15, 7), Vector2(5, 13), Vector2(-12, 10)]), body_color)
+        draw_line(Vector2(-8,-9),Vector2(5,-12),body_color.lightened(0.30),2.0,true)
+        draw_arc(Vector2(2,-3),11.0,PI*1.05,PI*1.85,18,body_color.darkened(0.28),1.5,true)
+        draw_circle(Vector2(14,-8),2.5,Color("#fff0b0"))
+        draw_circle(Vector2(14,-8),1.0,Color("#3b2925"))
+        draw_line(Vector2(-10,8),Vector2(-13,16),Color("#49352f"),4.0,true)
+        draw_line(Vector2(8,8),Vector2(12,16),Color("#49352f"),4.0,true)
         draw_line(Vector2(-10, 5), Vector2(-13, 16), Color("#49352f"), 3.5, true)
         draw_line(Vector2(8, 6), Vector2(12, 16), Color("#49352f"), 3.5, true)
         draw_line(Vector2(14, 0), Vector2(20, 10), Color("#49352f"), 3.5, true)
@@ -205,6 +230,9 @@ func _draw() -> void:
     var bar_y := -67.0 if is_boss else -34.0
     draw_rect(Rect2(-bar_width * 0.5, bar_y, bar_width, 5), Color("#382d2a"))
     draw_rect(Rect2(-bar_width * 0.5, bar_y, bar_width * clampf(health / maxf(max_health, 1), 0, 1), 5), Color("#d85b4d"))
+    if is_boss:
+        var aura_alpha := 0.18 + 0.10 * absf(sin(_visual_clock * 2.2))
+        draw_arc(Vector2.ZERO, 42.0 + sin(_visual_clock * 2.0) * 2.0, 0.0, TAU, 48, Color("#a6c36c",aura_alpha), 3.0, true)
     if is_boss and _boss_attack_pending:
         var warning_alpha := 0.42 + 0.30 * absf(sin(Time.get_ticks_msec() * 0.018))
         draw_arc(Vector2.ZERO, _boss_telegraph_radius / scale.x, 0.0, TAU, 48, Color(1.0, 0.20, 0.14, warning_alpha), 3.5, true)

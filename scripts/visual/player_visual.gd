@@ -1,6 +1,6 @@
 extends Node2D
 
-## Original, code-drawn portrait ARPG character. Kept asset-free for reliable scaling.
+## Original hand-drawn adventurer with layered cloth, armor, face and class weapon.
 var _idle_clock := 0.0
 
 func _process(delta: float) -> void:
@@ -10,10 +10,13 @@ func _process(delta: float) -> void:
 func _draw() -> void:
     var parent := get_parent()
     var class_id := str(parent.get("class_id")) if is_instance_valid(parent) else "warrior"
-    var bob := sin(_idle_clock * 2.8) * 1.1
+    var moving := is_instance_valid(parent) and parent is CharacterBody2D and parent.velocity.length() > 8.0
+    var bob := sin(_idle_clock * (8.5 if moving else 2.8)) * (2.0 if moving else 0.8)
+    var step := sin(_idle_clock * 8.5) * 2.0 if moving else 0.0
     var cape := Color("#8d2936")
     var cloth := Color("#315d77")
     var trim := Color("#d8b66c")
+    var skin := Color("#d8a47c")
     var weapon := Color("#dce4e7")
     if class_id == "mage":
         cape = Color("#334b83")
@@ -26,36 +29,56 @@ func _draw() -> void:
         trim = Color("#e5d38a")
         weapon = Color("#d6e7bc")
 
-    # Ground shadow and back-facing cape.
-    draw_colored_polygon(PackedVector2Array([Vector2(-13, 13), Vector2(0, 18), Vector2(14, 13), Vector2(0, 9)]), Color(0.04, 0.07, 0.06, 0.38))
-    draw_colored_polygon(PackedVector2Array([Vector2(-7, -7 + bob), Vector2(-15, 1 + bob), Vector2(-12, 13 + bob), Vector2(0, 9 + bob), Vector2(10, 14 + bob), Vector2(13, 1 + bob), Vector2(6, -8 + bob)]), cape)
-    draw_colored_polygon(PackedVector2Array([Vector2(-8, 5 + bob), Vector2(-5, 15 + bob), Vector2(-1, 15 + bob), Vector2(-2, 5 + bob)]), Color("#292e35"))
-    draw_colored_polygon(PackedVector2Array([Vector2(2, 5 + bob), Vector2(3, 15 + bob), Vector2(8, 15 + bob), Vector2(7, 5 + bob)]), Color("#292e35"))
+    # Contact shadow and trailing mantle.
+    draw_ellipse(Vector2(0, 15), Vector2(15, 5), Color(0.02, 0.04, 0.03, 0.42))
+    draw_colored_polygon(PackedVector2Array([Vector2(-8,-8+bob),Vector2(-16,1+bob),Vector2(-13,16+bob),Vector2(-4,12+bob),Vector2(0,17+bob),Vector2(11,14+bob),Vector2(15,1+bob),Vector2(7,-9+bob)]), cape.darkened(0.18))
+    draw_colored_polygon(PackedVector2Array([Vector2(-8,-4+bob),Vector2(-13,3+bob),Vector2(-8,12+bob),Vector2(-2,9+bob)]), cape.lightened(0.12))
+    draw_line(Vector2(0,-7+bob),Vector2(0,12+bob),cape.lightened(0.24),1.2,true)
 
-    # Shoulder plates, torso and belt.
-    draw_colored_polygon(PackedVector2Array([Vector2(-10, -9 + bob), Vector2(-7, -14 + bob), Vector2(7, -14 + bob), Vector2(11, -8 + bob), Vector2(8, 6 + bob), Vector2(-7, 6 + bob)]), cloth)
-    draw_colored_polygon(PackedVector2Array([Vector2(-10, -10 + bob), Vector2(-6, -14 + bob), Vector2(-3, -10 + bob), Vector2(-6, -5 + bob)]), trim)
-    draw_colored_polygon(PackedVector2Array([Vector2(10, -10 + bob), Vector2(6, -14 + bob), Vector2(3, -10 + bob), Vector2(6, -5 + bob)]), trim)
-    draw_line(Vector2(-7, 3 + bob), Vector2(7, 3 + bob), trim, 2.0, true)
+    # Boots and articulated legs.
+    draw_colored_polygon(PackedVector2Array([Vector2(-8,5+bob),Vector2(-6,14+step),Vector2(-1,15+step),Vector2(-2,5+bob)]),Color("#292d31"))
+    draw_colored_polygon(PackedVector2Array([Vector2(2,5+bob),Vector2(3,15-step),Vector2(9,14-step),Vector2(7,5+bob)]),Color("#343238"))
+    draw_line(Vector2(-6,12+step),Vector2(-1,12+step),trim,1.4,true)
+    draw_line(Vector2(4,12-step),Vector2(9,12-step),trim,1.4,true)
 
-    # Head, hair/hood and face highlight.
-    draw_circle(Vector2(0, -18 + bob), 6.2, Color("#d8a47c"))
-    draw_arc(Vector2(0, -19 + bob), 6.4, PI, TAU, 18, Color("#2b2424"), 3.2, true)
-    draw_circle(Vector2(-2.2, -18 + bob), 0.7, Color("#fff0d0"))
-    draw_line(Vector2(-3, -12 + bob), Vector2(3, -12 + bob), Color("#8d5848"), 1.0)
+    # Torso, shoulder guards and chest plate.
+    draw_colored_polygon(PackedVector2Array([Vector2(-10,-10+bob),Vector2(-7,-15+bob),Vector2(7,-15+bob),Vector2(11,-9+bob),Vector2(8,7+bob),Vector2(-8,7+bob)]),cloth)
+    draw_colored_polygon(PackedVector2Array([Vector2(-9,-10+bob),Vector2(-6,-14+bob),Vector2(-2,-10+bob),Vector2(-6,-5+bob)]),trim.darkened(0.08))
+    draw_colored_polygon(PackedVector2Array([Vector2(9,-10+bob),Vector2(6,-14+bob),Vector2(2,-10+bob),Vector2(6,-5+bob)]),trim)
+    draw_colored_polygon(PackedVector2Array([Vector2(-5,-11+bob),Vector2(0,-13+bob),Vector2(5,-10+bob),Vector2(4,3+bob),Vector2(-4,3+bob)]),cloth.lightened(0.18))
+    draw_line(Vector2(0,-10+bob),Vector2(0,3+bob),trim,1.2,true)
+    draw_line(Vector2(-7,4+bob),Vector2(7,4+bob),trim,2.0,true)
+    draw_circle(Vector2(0,4+bob),1.7,Color("#f5d98e"))
 
-    # Weapon silhouette changes by class.
+    # Arms and bracers.
+    draw_line(Vector2(-9,-8+bob),Vector2(-13,2+bob),skin.darkened(0.08),4.0,true)
+    draw_line(Vector2(9,-8+bob),Vector2(12,1+bob),skin,4.0,true)
+    draw_line(Vector2(-12,0+bob),Vector2(-14,4+bob),trim,3.0,true)
+    draw_line(Vector2(11,-1+bob),Vector2(14,2+bob),trim,3.0,true)
+
+    # Head, hairline, face and hood rim.
+    draw_circle(Vector2(0,-19+bob),6.5,skin)
+    draw_arc(Vector2(0,-20+bob),6.8,PI,TAU,20,Color("#2b2424"),3.6,true)
+    draw_colored_polygon(PackedVector2Array([Vector2(-6,-20+bob),Vector2(-7,-25+bob),Vector2(-2,-27+bob),Vector2(5,-25+bob),Vector2(7,-20+bob),Vector2(2,-22+bob),Vector2(-3,-22+bob)]),cape.darkened(0.12))
+    draw_circle(Vector2(-2.3,-18+bob),0.75,Color("#fff0d0"))
+    draw_circle(Vector2(2.3,-18+bob),0.75,Color("#fff0d0"))
+    draw_line(Vector2(-2,-14+bob),Vector2(2,-14+bob),Color("#925d4b"),0.9,true)
+
+    # Weapon silhouettes and distinct magical identity.
     if class_id == "mage":
-        draw_line(Vector2(10, -7 + bob), Vector2(15, -27 + bob), Color("#6d4b32"), 3.0, true)
-        draw_circle(Vector2(15, -29 + bob), 4.0, weapon)
-        draw_circle(Vector2(15, -29 + bob), 2.0, Color("#d9ffff"))
+        draw_line(Vector2(11,-7+bob),Vector2(16,-27+bob),Color("#6d4b32"),3.2,true)
+        draw_circle(Vector2(16,-29+bob),5.0,weapon.darkened(0.12))
+        draw_circle(Vector2(16,-29+bob),3.0,Color("#e9ffff"))
+        draw_arc(Vector2(16,-29+bob),7.0,_idle_clock, _idle_clock + PI * 1.35,18,Color("#80dcff",0.8),1.2,true)
     elif class_id == "taoist":
-        draw_line(Vector2(11, -6 + bob), Vector2(17, 12 + bob), Color("#745437"), 2.5, true)
-        draw_colored_polygon(PackedVector2Array([Vector2(13, -3 + bob), Vector2(18, -1 + bob), Vector2(16, 4 + bob), Vector2(11, 2 + bob)]), weapon)
+        draw_line(Vector2(11,-6+bob),Vector2(18,13+bob),Color("#745437"),2.8,true)
+        draw_colored_polygon(PackedVector2Array([Vector2(12,-5+bob),Vector2(18,-3+bob),Vector2(16,4+bob),Vector2(10,2+bob)]),weapon)
+        draw_circle(Vector2(15,-1+bob),2.0,Color("#f6e6b4"))
     else:
-        draw_line(Vector2(10, -5 + bob), Vector2(22, 10 + bob), Color("#73533a"), 2.6, true)
-        draw_colored_polygon(PackedVector2Array([Vector2(19, 5 + bob), Vector2(25, 12 + bob), Vector2(21, -1 + bob)]), weapon)
-        draw_line(Vector2(16, 2 + bob), Vector2(21, -1 + bob), trim, 2.0, true)
+        draw_line(Vector2(10,-5+bob),Vector2(23,12+bob),Color("#73533a"),3.0,true)
+        draw_colored_polygon(PackedVector2Array([Vector2(19,5+bob),Vector2(26,13+bob),Vector2(21,-2+bob)]),weapon)
+        draw_line(Vector2(16,2+bob),Vector2(21,-2+bob),trim,2.2,true)
+        draw_line(Vector2(12,-2+bob),Vector2(18,5+bob),Color("#f4e7cb"),1.0,true)
 
-    # Small ground-facing highlight gives the sprite a readable edge.
-    draw_arc(Vector2(0, 4 + bob), 13.0, 0.12, PI - 0.12, 20, Color(1.0, 0.86, 0.58, 0.55), 1.2, true)
+    # Small highlights keep the sprite readable against forest ground.
+    draw_arc(Vector2(0,4+bob),13.0,0.12,PI-0.12,20,Color(1.0,0.86,0.58,0.62),1.2,true)
