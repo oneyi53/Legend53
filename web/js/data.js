@@ -32,3 +32,10 @@ export const MAIN_QUEST={
   id:"clear_the_woods",title:"清理林间",npcId:"village_elder",targetEnemyId:"forest_beast",
   targetCount:3,reward:{exp:80,gold:60,gear:{id:"quest_badge",name:"巡林者徽记",slot:"armor",quality:"优秀",health:20,attack:0,defense:1}}
 };
+
+export const SHOP_ITEMS=[
+  {id:"small_potion",name:"小型治疗药水",kind:"potion",price:25,description:"立即恢复药水库存 +1"},
+  {id:"iron_sword",name:"铁制长剑",kind:"gear",price:120,description:"攻击 +7",gear:{id:"iron_sword",name:"铁制长剑",slot:"weapon",quality:"优秀",attack:7,health:0,defense:0}},
+  {id:"leather_armor",name:"硬化皮甲",kind:"gear",price:150,description:"生命 +35 · 防御 +3",gear:{id:"leather_armor",name:"硬化皮甲",slot:"armor",quality:"优秀",attack:0,health:35,defense:3}},
+  {id:"hunter_ring",name:"猎人指环",kind:"gear",price:180,description:"攻击 +3 · 生命 +12",gear:{id:"hunter_ring",name:"猎人指环",slot:"ring",quality:"稀有",attack:3,health:12,defense:0}}
+];
