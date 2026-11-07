@@ -1,0 +1,26 @@
+name: HTML5 runtime check
+on:
+  push:
+    branches: [main, "feat/pure-html5-runtime-2026-11-07"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate HTML5 files
+        run: |
+          test -s index.html
+          test -s web/styles.css
+          test -s web/game.js
+          grep -q 'type="module"' index.html
+          node --check web/game.js
+          test -s assets/characters/warrior.svg
+          test -s assets/characters/mage.svg
+          test -s assets/characters/taoist.svg
+          test -s assets/monsters/forest_beast.svg
+          test -s assets/monsters/ancient_tree_boss.svg
