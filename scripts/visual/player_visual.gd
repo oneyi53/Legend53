@@ -2,9 +2,41 @@ extends Node2D
 
 ## Original hand-drawn adventurer with layered cloth, armor, face and class weapon.
 var _idle_clock := 0.0
+var _art_sprite: Sprite2D
+var _last_class := ""
+
+func _ready() -> void:
+    _art_sprite = Sprite2D.new()
+    _art_sprite.centered = true
+    _art_sprite.position = Vector2(0, -8)
+    _art_sprite.scale = Vector2(0.34, 0.34)
+    _art_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+    add_child(_art_sprite)
+    _refresh_class_art()
+
+func _refresh_class_art() -> void:
+    if is_instance_valid(_art_sprite) and _art_sprite.texture != null:
+        _draw_ellipse(Vector2(0, 15), Vector2(16, 5), Color(0.02, 0.04, 0.03, 0.42))
+        return
+    var parent := get_parent()
+    var class_id := str(parent.get("class_id")) if is_instance_valid(parent) else "warrior
+    if class_id == _last_class:
+        return
+    _last_class = class_id
+    var art_path := "res://assets/characters/warrior.svg"
+    if class_id == "mage":
+        art_path = "res://assets/characters/mage.svg"
+    elif class_id == "taoist":
+        art_path = "res://assets/characters/taoist.svg"
+    _art_sprite.texture = load(art_path)
 
 func _process(delta: float) -> void:
     _idle_clock += delta
+    _refresh_class_art()
+    var parent := get_parent()
+    var moving := is_instance_valid(parent) and parent is CharacterBody2D and parent.velocity.length() > 8.0
+    _art_sprite.position.y = -8.0 + sin(_idle_clock * (8.5 if moving else 2.8)) * (2.0 if moving else 0.8)
+    _art_sprite.rotation = sin(_idle_clock * 8.5) * 0.025 if moving else sin(_idle_clock * 1.4) * 0.008
     queue_redraw()
 
 func _draw() -> void:

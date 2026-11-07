@@ -31,16 +31,47 @@ var _boss_telegraph_radius := 158.0
 var _boss_attack_pending := false
 var _visual_clock := 0.0
 var _was_targeted := false
+var _art_sprite: Sprite2D
 
 func _ready() -> void:
     health = max_health
     add_to_group("enemies")
     _player = get_tree().get_first_node_in_group("player") as Node2D
     scale = Vector2(1.16, 1.16)
+    _art_sprite = Sprite2D.new()
+    _art_sprite.centered = true
+    _art_sprite.position = Vector2(0, -5)
+    _art_sprite.scale = Vector2(0.48, 0.48)
+    _art_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+    add_child(_art_sprite)
+    _refresh_enemy_art()
     queue_redraw()
+
+func _refresh_enemy_art() -> void:
+    if not is_instance_valid(_art_sprite):
+        return
+    if is_boss:
+        _art_sprite.texture = load("res://assets/monsters/ancient_tree_boss.svg")
+        _art_sprite.scale = Vector2(0.86, 0.86)
+    else:
+        _art_sprite.texture = load("res://assets/monsters/forest_beast.svg")
+        _art_sprite.scale = Vector2(0.48, 0.48)
+        if is_elite and elite_type == "swift":
+            _art_sprite.modulate = Color("#b2e9ec")
+        elif is_elite and elite_type == "guardian":
+            _art_sprite.modulate = Color("#e3d4b2")
+        elif is_elite and elite_type == "brute":
+            _art_sprite.modulate = Color("#e59a77")
+        elif enemy_level >= 5:
+            _art_sprite.modulate = Color("#c6b4d5")
+        else:
+            _art_sprite.modulate = Color.WHITE
 
 func _process(delta: float) -> void:
     _visual_clock += delta
+    if is_instance_valid(_art_sprite):
+        _art_sprite.position.y = -5.0 + sin(_visual_clock * (3.1 if is_boss else 4.0)) * (1.7 if is_boss else 1.0)
+        _art_sprite.rotation = sin(_visual_clock * 1.7) * 0.012
     var director := get_tree().get_first_node_in_group("combat_director")
     var targeted := is_instance_valid(director) and director.get("current_target") == self
     if targeted != _was_targeted or is_boss:
@@ -96,6 +127,7 @@ func configure_for_zone(zone_id: String, level_value: int) -> void:
     move_speed = 72.0 + float(enemy_level - 1) * 2.5
     attack_damage = 6.0 + float(enemy_level - 1) * 1.2
     health = max_health
+    _refresh_enemy_art()
     queue_redraw()
 
 func configure_elite(variant: String) -> void:
@@ -120,6 +152,7 @@ func configure_elite(variant: String) -> void:
             health = max_health
             attack_damage *= 1.65
             move_speed *= 0.92
+    _refresh_enemy_art()
     queue_redraw()
 
 func configure_boss() -> void:
@@ -138,6 +171,7 @@ func configure_boss() -> void:
     _boss_base_damage = attack_damage
     _boss_base_interval = attack_interval
     scale = Vector2(1.65, 1.65)
+    _refresh_enemy_art()
     queue_redraw()
 
 func take_damage(amount: float) -> void:
