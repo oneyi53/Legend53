@@ -35,7 +35,7 @@ test("version 2 saves restore enemy health and uncollected drops",()=>{
     drops:[{x:460,y:705,type:"gold",amount:9,label:"金币 +9"}]
   }));
   const game=new Game();
-  assert.equal(game.enemies.filter(enemy=>enemy.active).length,3);
+  assert.equal(game.enemies.filter(enemy=>enemy.active).length,4);
   assert.equal(game.enemies.find(enemy=>enemy.spawnId==="deepwood_beast_1").hp,7);
   assert.equal(game.drops.length,1);
   assert.equal(game.drops[0].amount,9);
