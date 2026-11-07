@@ -13,7 +13,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -36,3 +36,27 @@ jobs:
         run: |
           /tmp/godot/Godot_v4.7.2-stable_linux.x86_64 \
             --headless --path . --quit-after 180
+
+      - name: Install virtual display and software renderer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri
+
+      - name: Capture and inspect gameplay screenshots
+        env:
+          VISUAL_OUTPUT_DIR: ${{ github.workspace }}/artifacts/visual-qa
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          mkdir -p "$VISUAL_OUTPUT_DIR"
+          xvfb-run -a /tmp/godot/Godot_v4.7.2-stable_linux.x86_64 \
+            --path . --rendering-method gl_compatibility \
+            --script res://scripts/qa/visual_smoke_test.gd
+
+      - name: Upload visual QA screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hero-world-visual-qa
+          path: artifacts/visual-qa/
+          if-no-files-found: warn
+          retention-days: 14
