@@ -116,3 +116,43 @@ test("changing regions drops targets from the previous region",()=>{
   assert.equal(game.target,null);
   assert.ok(game.enemies.filter(enemy=>enemy.active).every(enemy=>enemy.regionId==="deepwood"));
 });
+
+test("main quest requires speaking to the village elder before accepting",()=>{
+  const game=new Game();
+  assert.equal(game.acceptQuest(),false);
+  assert.equal(game.questAccepted,false);
+  assert.equal(game.interactNpc("village_elder"),true);
+  assert.equal(game.acceptQuest(),true);
+  assert.equal(game.questAccepted,true);
+});
+test("quest can only be claimed after three exact target kills and returning to elder",()=>{
+  const game=new Game();
+  game.interactNpc("village_elder");game.acceptQuest();
+  game.player.y=450;game.updateRegion();
+  const wolf=game.enemies.find(enemy=>enemy.id==="thorn_wolf");
+  const raider=game.enemies.find(enemy=>enemy.id==="forest_beast");
+  game.defeat(wolf);
+  assert.equal(game.questKills,0);
+  for(let i=0;i<3;i++)game.defeat({...raider,alive:true});
+  assert.equal(game.questKills,3);
+  assert.equal(game.claimQuest(),false);
+  game.player.y=260;game.updateRegion();game.interactNpc("village_elder");
+  const goldBefore=game.gold;
+  assert.equal(game.claimQuest(),true);
+  assert.equal(game.questClaimed,true);
+  assert.equal(game.gold,goldBefore+60);
+  assert.ok(game.inventory.some(item=>item.id==="quest_badge"));
+  assert.equal(game.claimQuest(),false);
+});
+test("quest progress is capped at its target and survives save reload",()=>{
+  const game=new Game();
+  game.interactNpc("village_elder");game.acceptQuest();
+  game.player.y=450;game.updateRegion();
+  const raider=game.enemies.find(enemy=>enemy.id==="forest_beast");
+  for(let i=0;i<5;i++)game.defeat({...raider,alive:true});
+  assert.equal(game.questKills,3);
+  game.save();
+  const restored=new Game();
+  assert.equal(restored.questAccepted,true);
+  assert.equal(restored.questKills,3);
+});
