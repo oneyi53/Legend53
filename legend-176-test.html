@@ -22,7 +22,7 @@ canvas{width:100%;height:100%;display:block;image-rendering:pixelated}
 </style></head><body><main id="game"><canvas id="view"></canvas><div class="hud">
 <div class="top"><div class="panel hero"><div class="portrait">⚔</div><div><div class="name">无名剑客 <span class="level">战士 · Lv.7</span></div><div class="barline">HP <div class="bar"><i id="hp"></i></div><span id="hptext">280/280</span></div><div class="barline mp">MP <div class="bar"><i id="mp"></i></div><span>90/90</span></div><div class="barline xp">EXP <div class="bar"><i id="xp"></i></div><span id="xptext">45%</span></div></div></div><div class="right"><div class="panel coords" id="coords">比奇城外 · 练级区</div><div class="minimap"><canvas id="mini" width="76" height="76"></canvas></div></div></div>
 <div class="zone">比 奇 城 外 · 银 杏 山 谷</div><div class="help">WASD / 方向键移动 · 点击地面行走 · 空格攻击</div>
-<div class="target" id="target" hidden><span id="targetname">钉耙猫</span><div class="targetbar"><i id="targethp"></i></div></div><div class="toast" id="toast"></div>
+<div class="target" id="target" hidden><span id="targetname">小兽人</span><div class="targetbar"><i id="targethp"></i></div></div><div class="toast" id="toast"></div>
 <div class="joy" id="joy"><div class="nub" id="nub"></div></div>
 <div class="bottom"><div class="panel stats">金币 <b id="gold">128</b><br>药水 <b id="pots">3</b><br><span id="hint">附近有怪物出没</span></div><div class="slots"><div class="slot">🗡<small>1</small></div><div class="slot">🛡<small>2</small></div><div class="slot">🧪<small>3</small></div><div class="slot">✦<small>4</small></div></div><div class="actions"><button class="act" id="potion">药<span>恢复</span></button><button class="act" id="skill">斩<span>半月弯刀</span></button><button class="act attack" id="attack">⚔<span>攻击</span></button></div></div></div></main>
 <script>
@@ -30,7 +30,8 @@ canvas{width:100%;height:100%;display:block;image-rendering:pixelated}
 const canvas=document.getElementById('view'),ctx=canvas.getContext('2d'),mini=document.getElementById('mini').getContext('2d');
 ctx.imageSmoothingEnabled=false;
 // Third-party art: AscensionGameDev / Intersect-Assets, main_full branch.
-// Tilesets, entities and UI art by credited contributors; CC BY 4.0 unless README lists a more specific license.
+// Public repository assets are embedded for this offline prototype.
+// Individual asset licensing has not yet been verified file-by-file; do not treat repository visibility as a reuse license.
 // Source: https://github.com/AscensionGameDev/Intersect-Assets
 const art={};
 function loadArt(key,data){const im=new Image();im.src='data:image/png;base64,'+data;art[key]=im;}
@@ -114,7 +115,7 @@ ctx.restore()}
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
 function showToast(s){const el=document.getElementById('toast');el.textContent=s;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),1500)}
-function updateHud(){document.getElementById('hp').style.width=player.hp/player.max*100+'%';document.getElementById('hptext').textContent=Math.ceil(player.hp)+'/'+player.max;document.getElementById('gold').textContent=player.gold;document.getElementById('pots').textContent=player.pots;document.getElementById('xp').style.width=player.exp+'%';document.getElementById('xptext').textContent=player.exp+'%';document.getElementById('hint').textContent=target&&target.alive?'目标：'+(target.type==='cat'?'钉耙猫':'半兽人'):'附近有怪物出没';
+function updateHud(){document.getElementById('hp').style.width=player.hp/player.max*100+'%';document.getElementById('hptext').textContent=Math.ceil(player.hp)+'/'+player.max;document.getElementById('gold').textContent=player.gold;document.getElementById('pots').textContent=player.pots;document.getElementById('xp').style.width=player.exp+'%';document.getElementById('xptext').textContent=player.exp+'%';document.getElementById('hint').textContent=target&&target.alive?'目标：'+(target.type==='cat'?'小兽人':'半兽人'):'附近有怪物出没';
 const b=document.getElementById('target');b.hidden=!(target&&target.alive);if(target&&target.alive){document.getElementById('targetname').textContent=target.type==='cat'?'钉耙猫':'半兽人';document.getElementById('targethp').style.width=target.hp/target.max*100+'%'}}
 function attack(power=1){if(player.attack>0.15)return;player.attack=.28;attackFlash=.22;let candidates=monsters.filter(m=>m.alive&&dist(m,player)<62).sort((a,b)=>dist(a,player)-dist(b,player));let m=candidates[0];if(!m){showToast('没有可攻击的目标');return}target=m;m.hp-=power*(26+Math.random()*12);m.hit=.18;m.atk=.3;if(m.hp<=0){m.alive=false;drops.push({x:m.x,y:m.y,kind:'gold',value:8+Math.floor(rand()*18),life:18});if(rand()<.35)drops.push({x:m.x+12,y:m.y+8,kind:'potion',life:18});player.exp=Math.min(100,player.exp+8);if(player.exp>=100){player.exp=0;showToast('等级提升！Lv.8')}else showToast('击败怪物 · 经验 +8')}else showToast('命中！');updateHud()}
 function update(dt){let dx=0,dy=0;if(keys.w||keys.ArrowUp)dy--;if(keys.s||keys.ArrowDown)dy++;if(keys.a||keys.ArrowLeft)dx--;if(keys.d||keys.ArrowRight)dx++;if(pointer){let a=pointer.x-player.x,b=pointer.y-player.y,l=Math.hypot(a,b);if(l>14){dx=a/l;dy=b/l}else pointer=null}
