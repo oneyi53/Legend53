@@ -69,7 +69,7 @@ function tree(x,y,s){ctx.save();ctx.translate(x,y);ctx.scale(s,s);if(art.overwor
 function rock(o){ctx.fillStyle='#303b2d';ctx.fillRect(o.x-9*o.s,o.y+6*o.s,22*o.s,5*o.s);ctx.fillStyle='#747d6b';ctx.fillRect(o.x-8*o.s,o.y-4*o.s,18*o.s,13*o.s);ctx.fillStyle='#a0a18a';ctx.fillRect(o.x-4*o.s,o.y-4*o.s,8*o.s,3*o.s);ctx.fillStyle='#525e50';ctx.fillRect(o.x+5*o.s,o.y+2*o.s,6*o.s,6*o.s)}
 function actorSprite(x,y,type,dir,frame,hit=false){ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.fillStyle='#17201688';ctx.fillRect(-12,12,24,5);
 let im=type==='hero'?art.hero:(type==='cat'?art.orcSmall:art.orcMedium);
-if(im?.complete&&im.naturalWidth){let row=typeof dir==='number'?(dir<0?1:2):0;let col=Math.floor(frame)%4;if(type==='hero')row=player.dirRow||0;ctx.drawImage(im,col*32,row*32,32,32,-20,-30,40,40);if(hit){ctx.fillStyle='#fff4c2aa';ctx.fillRect(-15,-27,30,3)}}else{ctx.fillStyle='#c5b48a';ctx.fillRect(-7,-14,14,24);ctx.fillStyle='#9c3026';ctx.fillRect(-8,-3,16,9)}
+if(im?.complete&&im.naturalWidth){let row=typeof dir==='number'?(dir<0?1:2):0;let col=Math.floor(frame)%4;if(type==='hero')row=player.dirRow||0;let cell=type==='orc'?64:32;ctx.drawImage(im,col*cell,row*cell,cell,cell,-20,-30,40,40);if(hit){ctx.fillStyle='#fff4c2aa';ctx.fillRect(-15,-27,30,3)}}else{ctx.fillStyle='#c5b48a';ctx.fillRect(-7,-14,14,24);ctx.fillStyle='#9c3026';ctx.fillRect(-8,-3,16,9)}
 ctx.restore()}
 const drops=[];let target=null;
 function drawWorld(){let startX=Math.floor(camX/TILE)-1,startY=Math.floor(camY/TILE)-1,endX=Math.ceil((camX+W)/TILE)+1,endY=Math.ceil((camY+H)/TILE)+1;
