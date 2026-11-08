@@ -65,3 +65,25 @@ test("equipment defense reduces incoming damage",()=>{
   game.takeDamage(10);
   assert.equal(game.hp,game.maxHp-5);
 });
+
+import {TREE_PLACEMENTS,isBlockedByTree} from "../web/js/world.js";
+
+test("world collision data matches deterministic visible tree placements",()=>{
+  assert.equal(TREE_PLACEMENTS.length,38);
+  const tree=TREE_PLACEMENTS[0];
+  assert.equal(isBlockedByTree(tree.x,tree.y+3),true);
+  assert.equal(isBlockedByTree(450,330),false);
+});
+
+test("player cannot pass through a tree trunk but can slide along it",()=>{
+  const game=freshGame();
+  const tree=TREE_PLACEMENTS[0];
+  game.player.x=tree.x-30;
+  game.player.y=tree.y+3;
+  const beforeY=game.player.y;
+  game.movePlayer(25,0);
+  assert.equal(game.player.x,tree.x-30);
+  game.movePlayer(25,10);
+  assert.ok(game.player.y>beforeY);
+  assert.equal(isBlockedByTree(game.player.x,game.player.y),false);
+});
