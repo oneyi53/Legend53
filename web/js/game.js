@@ -83,14 +83,10 @@ export class Game{
       const dist=this.distance(this.player,e);
       if(this.player.y<390){e.attackTimer=Math.max(0,e.attackTimer-dt);continue}
       if(dist<290&&dist>37){
-        e.x+=(this.player.x-e.x)/dist*e.speed*dt;
-        e.y+=(this.player.y-e.y)/dist*e.speed*dt;
+        this.moveEnemyToward(e,this.player.x,this.player.y,e.speed,dt);
       }else if(dist>360){
         const homeDist=Math.hypot((e.homeX??e.x)-e.x,(e.homeY??e.y)-e.y);
-        if(homeDist>3){
-          e.x+=((e.homeX??e.x)-e.x)/homeDist*e.speed*1.25*dt;
-          e.y+=((e.homeY??e.y)-e.y)/homeDist*e.speed*1.25*dt;
-        }
+        if(homeDist>3)this.moveEnemyToward(e,e.homeX??e.x,e.homeY??e.y,e.speed*1.25,dt);
       }
       if(e.id==="woodland_chief"){
         e.specialCooldown=Math.max(0,(e.specialCooldown??3.2)-dt);
