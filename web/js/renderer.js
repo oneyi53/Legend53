@@ -1,3 +1,5 @@
+import {TREE_PLACEMENTS} from "./world.js";
+
 export class Renderer{
   constructor(canvas,game,input){this.canvas=canvas;this.ctx=canvas.getContext("2d");this.game=game;this.input=input;this.images={};this.playerArtClass="warrior";this.loadImage("player","./assets/characters/warrior.svg");this.loadImage("enemy","./assets/monsters/forest_beast.svg");this.loadImage("boss","./assets/monsters/ancient_tree_boss.svg");this.resize();new ResizeObserver(()=>this.resize()).observe(canvas)}
   loadImage(key,src){const img=new Image();img.src=src;this.images[key]=img}
@@ -7,7 +9,7 @@ export class Renderer{
   drawWorld(c,cx,cy){c.fillStyle="#203529";c.fillRect(0,0,900,1600);const bands=[["#4d6347",0,390],["#395640",390,560],["#304b3a",560,850],["#5b5542",850,1160],["#514238",1160,1600]];for(const [color,y1,y2] of bands){c.fillStyle=color;c.fillRect(0,y1,900,y2-y1)}
     for(let y=0;y<1600;y+=72)for(let x=0;x<900;x+=72){const v=Math.sin(x*12.9898+y*78.233)*43758.5453;c.fillStyle=(v-Math.floor(v))>.5?"#ffffff08":"#06140b0a";c.beginPath();c.ellipse(x+25,y+18,22,9,.2,0,Math.PI*2);c.fill()}
     c.strokeStyle="#c6b98a44";c.lineWidth=70;c.beginPath();c.moveTo(450,250);c.bezierCurveTo(300,460,600,650,420,900);c.bezierCurveTo(300,1080,520,1200,450,1430);c.stroke();
-    for(let i=0;i<38;i++){const x=(i*173+71)%870,y=410+(i*239)%1050;this.drawTree(c,x,y,0.72+(i%4)*.13)}
+    for(const tree of TREE_PLACEMENTS)this.drawTree(c,tree.x,tree.y,tree.scale);
     for(let i=0;i<15;i++){const x=(i*197+90)%850,y=80+(i*113)%300;this.drawBuilding(c,x,y)}
     this.drawGate(c,450,390);this.drawAltar(c,450,1390);
   }
