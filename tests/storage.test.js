@@ -18,7 +18,7 @@ afterEach(()=>{delete globalThis.localStorage});
 test("version 1 saves migrate without losing character progress",()=>{
   values.set(KEY,JSON.stringify({version:1,classId:"mage",level:3,exp:25,gold:80,x:410,y:620}));
   const save=loadSave();
-  assert.equal(save.version,4);
+  assert.equal(save.version,5);
   assert.equal(save.classId,"mage");
   assert.equal(save.level,3);
   const game=new Game();
@@ -41,7 +41,7 @@ test("version 2 saves restore enemy health and uncollected drops",()=>{
   assert.equal(game.drops[0].amount,9);
   game.save();
   const saved=JSON.parse(values.get(KEY));
-  assert.equal(saved.version,4);
+  assert.equal(saved.version,5);
   assert.equal(saved.enemies.find(enemy=>enemy.spawnId==="deepwood_beast_1").hp,7);
   assert.equal(saved.drops[0].amount,9);
 });
@@ -49,10 +49,16 @@ test("version 2 saves restore enemy health and uncollected drops",()=>{
 test("version 2 saves migrate to version 4 without losing quest progress",()=>{
   values.set(KEY,JSON.stringify({version:2,classId:"warrior",level:2,exp:15,gold:42,questAccepted:true,questKills:2,questClaimed:false,x:450,y:500}));
   const save=loadSave();
-  assert.equal(save.version,4);
+  assert.equal(save.version,5);
   assert.equal(save.questAccepted,true);
   assert.equal(save.questKills,2);
   const game=new Game();
   assert.equal(game.questKills,2);
   assert.equal(game.questAccepted,true);
+});
+
+test("version five save restores unique rolled equipment and its attributes",()=>{
+  const game=new Game();game.inventory=[{id:"thorn_axe",instanceId:"gear-9",name:"荆棘战斧",slot:"weapon",quality:"史诗",attack:12,health:8,defense:1,affixes:["攻击强化"]}];
+  game.equipItem(0);game.gearSequence=9;game.save();const restored=new Game();
+  assert.equal(restored.equipment.weapon.instanceId,"gear-9");assert.equal(restored.equipment.weapon.attack,12);assert.equal(restored.equipment.weapon.affixes[0],"攻击强化");assert.equal(restored.gearSequence,9);
 });
