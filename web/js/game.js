@@ -20,7 +20,7 @@ const SPAWN_POINTS=[
 const REGION_ACTIVE_CAP=4;
 export class Game{
   constructor(){
-    const saved=loadSave();this.classId=saved?.classId||"warrior";this.level=saved?.level||1;this.exp=saved?.exp||0;this.gold=saved?.gold??100;this.potions=saved?.potions??3;this.inventory=saved?.inventory||[];this.equipment=saved?.equipment||{};
+    const saved=loadSave();this.classId=saved?.classId||"warrior";this.level=saved?.level||1;this.exp=saved?.exp||0;this.gold=saved?.gold??100;this.potions=saved?.potions??3;this.inventory=saved?.inventory||[];this.equipment=saved?.equipment||{};this.gearSequence=saved?.gearSequence||0;
     this.hp=saved?.hp??this.maxHp;this.player={x:saved?.x??450,y:saved?.y??330,attackTimer:0,skillTimer:0,flash:0};
     this.kills=saved?.kills||0;this.questKills=saved?.questKills||0;this.skillPoints=saved?.skillPoints||0;this.questAccepted=saved?.questAccepted||false;this.questClaimed=saved?.questClaimed||false;this.deepwoodQuestAccepted=saved?.deepwoodQuestAccepted||false;this.deepwoodQuestClaimed=saved?.deepwoodQuestClaimed||false;this.deepwoodEntered=saved?.deepwoodEntered||false;this.deepwoodEliteKills=saved?.deepwoodEliteKills||0;this.questMaterials=saved?.questMaterials||0;this.skillLevel=saved?.skillLevel||1;this.region="village";this.auto=false;this.target=null;this.drops=[];this.effects=[];this.damageTexts=[];this.enemies=[];this.clock=0;this.autosaveTimer=0;this.notice="";this.noticeTime=0;this.activeNpcId=null;this.onChange=()=>{};
     const restoredEnemies=Array.isArray(saved?.enemies)?saved.enemies.filter(e=>e&&typeof e.id==="string"&&Number.isFinite(e.x)&&Number.isFinite(e.y)&&Number.isFinite(e.hp)&&Number.isFinite(e.hpMax)):null;
@@ -94,8 +94,7 @@ export class Game{
       if(dist<43&&e.attackTimer<=0){this.takeDamage(e.attack);e.attackTimer=e.boss?1.45:1.25}else e.attackTimer-=dt;
     }
     if(this.auto){if(!this.target||!this.target.alive||!this.target.active)this.target=this.nearest(this.klass.range+180);if(this.target){const dist=this.distance(this.player,this.target);if(dist>this.klass.range){const dx=(this.target.x-this.player.x)/dist,dy=(this.target.y-this.player.y)/dist;this.movePlayer(dx*150*dt,dy*150*dt)}else this.basicAttack()}}
-    this.drops=this.drops.filter(drop=>{if(this.distance(this.player,drop)<42){if(drop.type==="gold")this.gold+=drop.amount;else if(drop.type==="exp")this.gainExp(drop.amount);else if(drop.type==="quest_item"){this.questMaterials+=drop.amount||1;this.toast(drop.label)}else this.inventory.push(drop.item);this.toast(drop.label);return false}return true});
-    this.effects=this.effects.filter(f=>{f.life-=dt;return f.life>0});this.damageTexts=this.damageTexts.filter(t=>{t.life-=dt;t.y-=24*dt;return t.life>0});
+    this.drops=this.drops.filter(drop=>{if(this.distance(this.player,drop)<42){if(drop.type==="gold")this.gold+=drop.amount;else if(drop.type==="exp")this.gainExp(drop.amount);else if(drop.type==="quest_item"){this.questMaterials+=drop.amount||1;this.toast(drop.label)}else if(drop.type==="gear"){this.inventory.push(drop.item);this.toast("拾取装备："+drop.item.name)}else this.inventory.push(drop.item);return false}return true});this.effects=this.effects.filter(f=>{f.life-=dt;return f.life>0});this.damageTexts=this.damageTexts.filter(t=>{t.life-=dt;t.y-=24*dt;return t.life>0});
     if(this.noticeTime>0)this.noticeTime-=dt;
   }
   distance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
@@ -106,7 +105,24 @@ export class Game{
     const targets=this.enemies.filter(e=>e.alive&&e.active&&this.distance(this.player,e)<(this.classId==="warrior"?145:260));if(!targets.length){this.toast("技能已释放");return}for(const e of targets){const dmg=Math.round(this.attack*c.skillPower*(1+this.skillLevel*.12));e.hp-=dmg;this.damageTexts.push({x:e.x,y:e.y-35,text:String(dmg),life:.9});if(e.hp<=0)this.defeat(e)}this.toast(c.skill+" 命中 "+targets.length+" 个目标")}
   takeDamage(amount){const real=Math.max(1,Math.round(amount*this.defense)-this.stat("defense"));this.hp-=real;this.player.flash=.2;this.damageTexts.push({x:this.player.x,y:this.player.y-48,text:"-"+real,life:.7});if(this.hp<=0){this.hp=1;this.player.x=450;this.player.y=330;this.auto=false;this.toast("你已返回新手村，生命恢复");this.hp=this.maxHp}}
   defeat(e){if(!e.alive)return;e.alive=false;e.respawnTimer=e.boss?90:e.elite?42:24;this.kills++;if(this.questAccepted&&!this.questClaimed&&e.id===MAIN_QUEST.targetEnemyId)this.questKills=Math.min(MAIN_QUEST.targetCount,this.questKills+1);
-    if(this.deepwoodQuestAccepted&&!this.deepwoodQuestClaimed&&e.id===DEEPWOOD_QUEST.targetEnemyId){this.deepwoodEliteKills=Math.min(1,this.deepwoodEliteKills+1);this.drops.push({x:e.x-18,y:e.y+12,type:"quest_item",itemId:DEEPWOOD_QUEST.materialId,amount:DEEPWOOD_QUEST.materialCount,label:DEEPWOOD_QUEST.materialName+" +"+DEEPWOOD_QUEST.materialCount});}this.gainExp(e.xp);const gold=rand(...e.gold);this.drops.push({x:e.x+15,y:e.y,type:"gold",amount:gold,label:"金币 +"+gold});if(Math.random()<.35||e.elite)this.drops.push({x:e.x-12,y:e.y+8,type:"gear",item:GEAR[rand(0,GEAR.length-1)],label:"发现装备"});if(e.boss){this.drops.push({x:e.x,y:e.y,type:"gear",item:GEAR[3],label:"获得传说装备"});this.toast("腐化古树被击败！")}else this.toast(e.elite?"精英怪已击败":"怪物已击败");this.target=null;this.onChange()}
+    if(this.deepwoodQuestAccepted&&!this.deepwoodQuestClaimed&&e.id===DEEPWOOD_QUEST.targetEnemyId){this.deepwoodEliteKills=Math.min(1,this.deepwoodEliteKills+1);this.drops.push({x:e.x-18,y:e.y+12,type:"quest_item",itemId:DEEPWOOD_QUEST.materialId,amount:DEEPWOOD_QUEST.materialCount,label:DEEPWOOD_QUEST.materialName+" +"+DEEPWOOD_QUEST.materialCount});}this.gainExp(e.xp);const gold=rand(...e.gold);this.drops.push({x:e.x+15,y:e.y,type:"gold",amount:gold,label:"金币 +"+gold});const gearChance=e.boss?1:e.elite?.72:.16;if(Math.random()<gearChance){const item=this.rollGearDrop(e);this.drops.push({x:e.x-12,y:e.y+8,type:"gear",item,label:"装备掉落："+item.name});}if(e.boss)this.toast("腐化古树被击败！");else this.toast(e.elite?"精英怪已击败":"怪物已击败");this.target=null;this.onChange()}
+  rollGearDrop(enemy){
+    const exclusive=enemy.id==="woodland_chief"?[{id:"thorn_axe",name:"荆棘战斧",slot:"weapon",attack:7,health:8,defense:0},{id:"deepwood_charm",name:"密林护符",slot:"necklace",attack:3,health:24,defense:2}]:enemy.boss?[GEAR[3],{id:"ancient_bark_armor",name:"古树鳞甲",slot:"armor",attack:2,health:72,defense:7}]:[];
+    const pool=exclusive.length?exclusive:GEAR.filter(item=>item.id!=="ancient_relic"||enemy.boss);
+    const base={...pool[rand(0,pool.length-1)]};const roll=Math.random();
+    const quality=roll<.48?"普通":roll<.78?"优秀":roll<.94?"稀有":roll<.99?"史诗":"传说";
+    const multiplier=({普通:.85,优秀:1,稀有:1.2,史诗:1.45,传说:1.8})[quality];
+    const variance=()=>.9+Math.random()*.22;
+    const item={...base,quality,attack:Math.max(0,Math.round((base.attack||0)*multiplier*variance())),health:Math.max(0,Math.round((base.health||0)*multiplier*variance())),defense:Math.max(0,Math.round((base.defense||0)*multiplier*variance())),instanceId:"gear-"+(++this.gearSequence)};
+    item.affixes=[];if(item.attack>0)item.affixes.push("攻击强化");if(item.health>0)item.affixes.push("生命强化");if(item.defense>0)item.affixes.push("防御强化");return item;
+  }
+  equipItem(index){
+    if(!Number.isInteger(index)||index<0||index>=this.inventory.length)return false;const item=this.inventory[index];if(!item?.slot)return false;
+    const oldMax=this.maxHp,old=this.equipment[item.slot];this.inventory.splice(index,1);if(old)this.inventory.push(old);this.equipment[item.slot]=item;
+    this.hp=clamp(this.hp+(this.maxHp-oldMax),1,this.maxHp);this.toast("已装备："+item.name);this.onChange();return true;
+  }
+  unequipItem(slot){const item=this.equipment[slot];if(!item)return false;const oldMax=this.maxHp;delete this.equipment[slot];this.inventory.push(item);this.hp=clamp(this.hp+(this.maxHp-oldMax),1,this.maxHp);this.toast("已卸下："+item.name);this.onChange();return true;}
+  compareGear(item){const current=this.equipment[item.slot]||{attack:0,health:0,defense:0};return {attack:(item.attack||0)-(current.attack||0),health:(item.health||0)-(current.health||0),defense:(item.defense||0)-(current.defense||0)};}
   gainExp(amount){this.exp+=amount;while(this.exp>=this.level*100){this.exp-=this.level*100;this.level++;this.skillPoints++;this.hp=this.maxHp;this.toast("等级提升！当前等级 "+this.level+" · 获得技能点") }}
   switchClass(nextId){if(!CLASSES[nextId]||nextId===this.classId)return false;const ratio=this.hp/this.maxHp;this.classId=nextId;this.hp=Math.max(1,Math.round(this.maxHp*ratio));this.toast("已切换职业："+this.klass.name);return true}
   upgradeSkill(){if(this.skillPoints<=0||this.skillLevel>=5)return false;this.skillPoints--;this.skillLevel++;this.toast("技能提升至 "+this.skillLevel+" 级");return true}
