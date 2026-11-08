@@ -265,5 +265,5 @@ test("equipment comparison replacement and unequip update combat stats",()=>{
 test("ground gear requires proximity before entering the backpack",()=>{
   const game=new Game();const item={id:"test",instanceId:"ground-1",name:"测试装备",slot:"weapon",attack:2};
   game.drops=[{x:600,y:500,type:"gear",item,label:"装备掉落"}];game.update(.01,input);assert.equal(game.inventory.length,0);
-  game.player.x=600;game.update(.01,input);assert.equal(game.inventory.length,1);assert.equal(game.inventory[0].instanceId,"ground-1");
+  game.player.x=600;game.player.y=500;game.update(.01,input);assert.equal(game.inventory.length,1);assert.equal(game.inventory[0].instanceId,"ground-1");
 });
