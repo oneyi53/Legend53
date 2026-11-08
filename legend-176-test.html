@@ -59,12 +59,12 @@ for(let y=24;y<31;y++)for(let x=10;x<20;x++)set(x,y,4);
 for(let y=21;y<36;y++)for(let x=7;x<24;x++)if(rand()<.42)set(x,y,0);
 const trees=[],rocks=[];
 for(let y=2;y<MH-2;y++)for(let x=2;x<MW-2;x++){let t=tileAt(x,y);if(t===1&&rand()<.33)trees.push({x:x*TILE+rand()*10,y:y*TILE+rand()*10,s:.75+rand()*.65});if(t===2&&rand()<.55)rocks.push({x:x*TILE+8,y:y*TILE+12,s:.7+rand()*.7})}
-function drawGround(x,y,t){let px=x*TILE,py=y*TILE;let n=((x*31+y*17)%13);let colors=['#56723b','#5a7540','#526f39','#607b43','#58733c'];ctx.fillStyle=t===4?'#8b794e':t===5?'#416e70':t===3?'#786a48':colors[n%5];ctx.fillRect(px,py,TILE,TILE);
-if(t===4){ctx.fillStyle='#a18b5c';ctx.fillRect(px,py+7,TILE,2);ctx.fillStyle='#776640';ctx.fillRect(px,py+22,TILE,2);ctx.fillStyle='#c0a36a';ctx.fillRect(px+5,py+13,5,3)}
-else if(t===5){ctx.fillStyle='#54888a';ctx.fillRect(px+4,py+7,13,2);ctx.fillRect(px+20,py+23,8,2);ctx.fillStyle='#315d60';ctx.fillRect(px,py+30,TILE,2)}
-else{ctx.fillStyle='#76934c';for(let i=0;i<3;i++){let xx=(x*13+y*7+i*11)%29;ctx.fillRect(px+xx,py+(i*9+3)%27,2,3)}if(n%4===0){ctx.fillStyle='#d0bb74';ctx.fillRect(px+15,py+9,2,2)}}
-if(t===3){ctx.fillStyle='#6b583d';ctx.fillRect(px+3,py+4,26,24);ctx.fillStyle='#968365';ctx.fillRect(px+7,py+7,17,15)}
-}
+function drawGround(x,y,t){let px=x*TILE,py=y*TILE;const atlas=art.ground;const tile=(sx,sy)=>{if(atlas?.complete&&atlas.naturalWidth)ctx.drawImage(atlas,sx,sy,32,32,px,py,32,32);else{ctx.fillStyle='#56723b';ctx.fillRect(px,py,32,32)}};
+if(t===4){tile(96,0);ctx.fillStyle='#b29a6a66';ctx.fillRect(px+2,py+3,28,2);ctx.fillStyle='#57472d55';ctx.fillRect(px+3,py+25,25,2)}
+else if(t===5){ctx.fillStyle='#315d62';ctx.fillRect(px,py,32,32);ctx.fillStyle='#477b7c';ctx.fillRect(px+2,py+5,28,8);ctx.fillStyle='#6b9690';ctx.fillRect(px+7,py+8,12,2);ctx.fillStyle='#244d53';ctx.fillRect(px+1,py+24,30,5)}
+else if(t===3){tile(32,160);ctx.fillStyle='#5b4a34';ctx.fillRect(px+3,py+3,26,26);ctx.fillStyle='#a08a65';ctx.fillRect(px+7,py+7,18,18)}
+else if(t===2){tile(96,32)}
+else{tile((x*7+y*11)%5===0?64:0,(x*3+y*5)%7===0?128:0);if(((x*13+y*7)%9)===0){ctx.fillStyle='#d4c17b';ctx.fillRect(px+8+(x%4)*3,py+9+(y%3)*4,2,3)}}}
 function tree(x,y,s){ctx.save();ctx.translate(x,y);ctx.scale(s,s);if(art.overworld?.complete&&art.overworld.naturalWidth){ctx.drawImage(art.overworld,160,0,96,112,-40,-58,80,94)}else{ctx.fillStyle='#59472e';ctx.fillRect(-4,4,8,25);ctx.fillStyle='#35502b';ctx.fillRect(-19,-10,38,21);ctx.fillRect(-14,-21,27,20)}ctx.restore()}
 function rock(o){ctx.fillStyle='#303b2d';ctx.fillRect(o.x-9*o.s,o.y+6*o.s,22*o.s,5*o.s);ctx.fillStyle='#747d6b';ctx.fillRect(o.x-8*o.s,o.y-4*o.s,18*o.s,13*o.s);ctx.fillStyle='#a0a18a';ctx.fillRect(o.x-4*o.s,o.y-4*o.s,8*o.s,3*o.s);ctx.fillStyle='#525e50';ctx.fillRect(o.x+5*o.s,o.y+2*o.s,6*o.s,6*o.s)}
 function actorSprite(x,y,type,dir,frame,hit=false){ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.fillStyle='#17201688';ctx.fillRect(-12,12,24,5);
@@ -78,7 +78,7 @@ ctx.save();ctx.translate(-camX,-camY);
 for(const o of rocks)if(o.x>camX-30&&o.x<camX+W+30&&o.y>camY-30&&o.y<camY+H+30)rock(o);
 const things=[...trees.map(t=>({y:t.y+17,draw:()=>tree(t.x,t.y,t.s)})),...monsters.filter(m=>m.alive).map(m=>({y:m.y,draw:()=>actorSprite(m.x,m.y,m.type,m.dirRow||0,Math.floor(m.phase*5),m.hit>0)})),...drops.map(d=>({y:d.y,draw:()=>{ctx.fillStyle='#f3d46c';ctx.fillRect(d.x-4,d.y-4,8,8);ctx.fillStyle='#fff2a8';ctx.fillRect(d.x-2,d.y-7,4,3)}})),{y:player.y,draw:()=>actorSprite(player.x,player.y,'hero',player.dir,Math.floor(player.frame*7))}].sort((a,b)=>a.y-b.y);
 for(const o of things)o.draw();
-if(player.attack>0){ctx.strokeStyle='#f6df9c';ctx.lineWidth=3;ctx.beginPath();ctx.arc(player.x,player.y-5,35,-.8,1.3);ctx.stroke();ctx.fillStyle='#f2d88a44';ctx.beginPath();ctx.arc(player.x,player.y-5,32,-.8,1.3);ctx.fill()}
+if(player.attack>0){let k=player.attack/.28;ctx.save();ctx.translate(player.x,player.y-7);ctx.rotate(player.dir<0?Math.PI:0);ctx.globalAlpha=Math.min(1,k*1.5);ctx.strokeStyle='#fff0b0';ctx.lineWidth=4;ctx.beginPath();ctx.arc(8,-3,34,-1.15,1.05);ctx.stroke();ctx.strokeStyle='#c5e1e8';ctx.lineWidth=2;ctx.beginPath();ctx.arc(8,-3,29,-1.05,.9);ctx.stroke();ctx.restore()}
 ctx.restore()}
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
