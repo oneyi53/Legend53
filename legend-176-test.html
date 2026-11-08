@@ -49,14 +49,45 @@ const map=Array.from({length:MH},(_,y)=>Array.from({length:MW},(_,x)=>{let v=ran
 const obstacles=[];
 function tileAt(x,y){return map[Math.max(0,Math.min(MH-1,y|0))][Math.max(0,Math.min(MW-1,x|0))]}
 function set(x,y,v){if(x>=0&&y>=0&&x<MW&&y<MH)map[y][x]=v}
-// path winding through woodland
-for(let y=0;y<MH;y++){let cx=13+Math.sin(y*.14)*4+Math.sin(y*.045)*6;for(let dx=-2;dx<=2;dx++)set(Math.round(cx)+dx,y,4)}
-// pond and stream
-for(let y=8;y<18;y++)for(let x=39;x<51;x++)if(((x-45)/6)**2+((y-13)/5)**2<1)set(x,y,5);
-for(let y=0;y<MH;y++){let x=Math.round(54+Math.sin(y*.17)*2);for(let d=0;d<2;d++)set(x+d,y,5)}
-// clear spawn / paths
-for(let y=24;y<31;y++)for(let x=10;x<20;x++)set(x,y,4);
-for(let y=21;y<36;y++)for(let x=7;x<24;x++)if(rand()<.42)set(x,y,0);
+// Fixed Bicheng outskirts layout: west gate road, central clearing, northern woodland, eastern stream
+// Preserve a little natural variation while giving the map readable landmarks.
+for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){
+  const edge=x<2||y<2||x>MW-3||y>MH-3;
+  set(x,y,edge?1:(rand()<.075?2:0));
+}
+// Dense woodland belts frame the playable paths.
+for(let y=3;y<22;y++)for(let x=3;x<23;x++)if(rand()<.48)set(x,y,1);
+for(let y=4;y<22;y++)for(let x=29;x<51;x++)if(rand()<.40)set(x,y,1);
+for(let y=34;y<51;y++)for(let x=4;x<29;x++)if(rand()<.34)set(x,y,1);
+for(let y=33;y<51;y++)for(let x=34;x<52;x++)if(rand()<.38)set(x,y,1);
+// Main packed-earth road from the western approach to the central training ground.
+for(let x=0;x<29;x++){
+  const cy=Math.round(27+Math.sin(x*.12)*1.6);
+  for(let dy=-2;dy<=2;dy++)set(x,cy+dy,4);
+}
+// Northbound fork and eastbound route to the stream crossing.
+for(let y=10;y<30;y++){
+  const cx=Math.round(24+Math.sin(y*.13)*1.2);
+  for(let dx=-1;dx<=1;dx++)set(cx+dx,y,4);
+}
+for(let x=23;x<54;x++){
+  const cy=Math.round(18+Math.sin(x*.10)*1.4);
+  for(let dy=-1;dy<=1;dy++)set(x,cy+dy,4);
+}
+// Open training clearing around the player start and a small eastern camp.
+for(let y=23;y<33;y++)for(let x=9;x<21;x++)set(x,y,0);
+for(let y=13;y<24;y++)for(let x=36;x<46;x++)if(rand()<.60)set(x,y,0);
+// Ruined stone foundations beside the northern road (tile 3).
+for(let y=7;y<11;y++)for(let x=17;x<22;x++)set(x,y,3);
+for(let y=8;y<10;y++)for(let x=18;x<21;x++)set(x,y,0);
+// Pond in the northwest and a continuous eastern stream with a ford.
+for(let y=5;y<13;y++)for(let x=5;x<13;x++)if(((x-9)/4)**2+((y-9)/4)**2<1)set(x,y,5);
+for(let y=0;y<MH;y++){
+  const sx=Math.round(55+Math.sin(y*.105)*1.5);
+  for(let dx=0;dx<2;dx++)set(sx+dx,y,5);
+}
+// Ford and approach banks.
+for(let y=16;y<22;y++)for(let x=51;x<59;x++)set(x,y,4);
 const trees=[],rocks=[];
 for(let y=2;y<MH-2;y++)for(let x=2;x<MW-2;x++){let t=tileAt(x,y);if(t===1&&rand()<.33)trees.push({x:x*TILE+rand()*10,y:y*TILE+rand()*10,s:.75+rand()*.65});if(t===2&&rand()<.55)rocks.push({x:x*TILE+8,y:y*TILE+12,s:.7+rand()*.7})}
 function drawGround(x,y,t){let px=x*TILE,py=y*TILE;const atlas=art.ground;const tile=(sx,sy)=>{if(atlas?.complete&&atlas.naturalWidth)ctx.drawImage(atlas,sx,sy,32,32,px,py,32,32);else{ctx.fillStyle='#56723b';ctx.fillRect(px,py,32,32)}};
