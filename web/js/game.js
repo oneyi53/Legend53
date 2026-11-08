@@ -1,5 +1,6 @@
 import {CLASSES,REGIONS,ENEMIES,GEAR,NPCS,MAIN_QUEST,DEEPWOOD_QUEST,SHOP_ITEMS} from "./data.js";
 import {loadSave,writeSave} from "./storage.js";
+import {isBlockedByTree} from "./world.js";
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const rand=(a,b)=>Math.floor(a+Math.random()*(b-a+1));
 const SPAWN_POINTS=[
@@ -45,7 +46,7 @@ export class Game{
     if(regionId==="altar"&&!this.enemies.some(enemy=>enemy.boss))this.enemies.push(this.makeEnemy(ENEMIES.find(enemy=>enemy.boss),450,1330,"altar_boss","altar"));
   }
   get maxReachableY(){let max=REGIONS[0].maxY;for(const region of REGIONS){if(this.level>=region.level)max=Math.max(max,region.maxY);}return Math.min(1480,max-1)}
-  movePlayer(dx,dy){const nextX=clamp(this.player.x+dx,38,862);const nextY=clamp(this.player.y+dy,70,this.maxReachableY);if(this.player.y+dy>this.maxReachableY&&this.player.y<=this.maxReachableY)this.toast("等级不足，暂时无法进入下一区域");this.player.x=nextX;this.player.y=nextY;}
+  movePlayer(dx,dy){const nextX=clamp(this.player.x+dx,38,862);const nextY=clamp(this.player.y+dy,70,this.maxReachableY);if(this.player.y+dy>this.maxReachableY&&this.player.y<=this.maxReachableY)this.toast("等级不足，暂时无法进入下一区域");if(!isBlockedByTree(nextX,nextY)){this.player.x=nextX;this.player.y=nextY;return;}const canX=!isBlockedByTree(nextX,this.player.y);const canY=!isBlockedByTree(this.player.x,nextY);if(canX)this.player.x=nextX;if(canY)this.player.y=nextY;}
   makeEnemy(type,x,y,spawnId=null,regionId=null){return {...type,x,y,homeX:x,homeY:y,spawnId,regionId:regionId||REGIONS.find(r=>y>=r.minY&&y<r.maxY)?.id||"village",hp:type.hp,hpMax:type.hp,attackTimer:rand(0,10)/10,phase:Math.random()*6,alive:true,active:true,respawnTimer:0,specialCooldown:type.id==="woodland_chief"?3.2:0,specialWindup:0}}
   update(dt,input){
     this.clock+=dt;this.autosaveTimer+=dt;if(this.autosaveTimer>=8){this.autosaveTimer=0;writeSave(this)}this.player.attackTimer=Math.max(0,this.player.attackTimer-dt);this.player.skillTimer=Math.max(0,this.player.skillTimer-dt);this.player.flash=Math.max(0,this.player.flash-dt);
