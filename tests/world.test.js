@@ -248,3 +248,22 @@ test("woodland chief thorn shockwave hits a player who remains in its warning ra
   assert.ok(game.hp<before);
   assert.equal(chief.specialCooldown,5.8);
 });
+
+test("gear rolls create unique instances and elite-specific equipment",()=>{
+  const game=new Game();const chief={id:"woodland_chief",elite:true};
+  const original=Math.random;Math.random=()=>.999;
+  const first=game.rollGearDrop(chief),second=game.rollGearDrop(chief);Math.random=original;
+  assert.ok(["thorn_axe","deepwood_charm"].includes(first.id));assert.equal(first.quality,"传说");assert.notEqual(first.instanceId,second.instanceId);
+  assert.ok(first.attack>=0&&first.health>=0&&first.defense>=0);
+});
+test("equipment comparison replacement and unequip update combat stats",()=>{
+  const game=new Game();game.inventory=[{id:"a",instanceId:"a",name:"旧剑",slot:"weapon",attack:3},{id:"b",instanceId:"b",name:"新剑",slot:"weapon",attack:8,health:10,defense:1}];
+  game.equipItem(0);assert.equal(game.attack,21);assert.deepEqual(game.compareGear(game.inventory[0]),{attack:5,health:10,defense:1});
+  game.equipItem(0);assert.equal(game.attack,26);assert.ok(game.inventory.some(item=>item.instanceId==="a"));
+  assert.equal(game.unequipItem("weapon"),true);assert.equal(game.attack,18);
+});
+test("ground gear requires proximity before entering the backpack",()=>{
+  const game=new Game();const item={id:"test",instanceId:"ground-1",name:"测试装备",slot:"weapon",attack:2};
+  game.drops=[{x:600,y:500,type:"gear",item,label:"装备掉落"}];game.update(.01,input);assert.equal(game.inventory.length,0);
+  game.player.x=600;game.update(.01,input);assert.equal(game.inventory.length,1);assert.equal(game.inventory[0].instanceId,"ground-1");
+});
