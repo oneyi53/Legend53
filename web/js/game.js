@@ -1,6 +1,6 @@
 import {CLASSES,REGIONS,ENEMIES,GEAR,NPCS,MAIN_QUEST,DEEPWOOD_QUEST,SHOP_ITEMS} from "./data.js";
 import {loadSave,writeSave} from "./storage.js";
-import {isBlockedByTree} from "./world.js";
+import {isBlockedByTree,findPath} from "./world.js";
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const rand=(a,b)=>Math.floor(a+Math.random()*(b-a+1));
 const SPAWN_POINTS=[
@@ -47,7 +47,23 @@ export class Game{
   }
   get maxReachableY(){let max=REGIONS[0].maxY;for(const region of REGIONS){if(this.level>=region.level)max=Math.max(max,region.maxY);}return Math.min(1480,max-1)}
   movePlayer(dx,dy){const nextX=clamp(this.player.x+dx,38,862);const nextY=clamp(this.player.y+dy,70,this.maxReachableY);if(this.player.y+dy>this.maxReachableY&&this.player.y<=this.maxReachableY)this.toast("等级不足，暂时无法进入下一区域");if(!isBlockedByTree(nextX,nextY)){this.player.x=nextX;this.player.y=nextY;return;}const canX=!isBlockedByTree(nextX,this.player.y);const canY=!isBlockedByTree(this.player.x,nextY);if(canX)this.player.x=nextX;if(canY)this.player.y=nextY;}
-  makeEnemy(type,x,y,spawnId=null,regionId=null){return {...type,x,y,homeX:x,homeY:y,spawnId,regionId:regionId||REGIONS.find(r=>y>=r.minY&&y<r.maxY)?.id||"village",hp:type.hp,hpMax:type.hp,attackTimer:rand(0,10)/10,phase:Math.random()*6,alive:true,active:true,respawnTimer:0,specialCooldown:type.id==="woodland_chief"?3.2:0,specialWindup:0}}
+  makeEnemy(type,x,y,spawnId=null,regionId=null){return {...type,x,y,homeX:x,homeY:y,spawnId,regionId:regionId||REGIONS.find(r=>y>=r.minY&&y<r.maxY)?.id||"village",hp:type.hp,hpMax:type.hp,attackTimer:rand(0,10)/10,phase:Math.random()*6,alive:true,active:true,respawnTimer:0,path:[],pathIndex:0,pathTimer:0,pathGoalX:null,pathGoalY:null,specialCooldown:type.id==="woodland_chief"?3.2:0,specialWindup:0}}
+  moveEnemyToward(enemy,goalX,goalY,speed,dt){
+    enemy.pathTimer=Math.max(0,(enemy.pathTimer||0)-dt);
+    const goalChanged=enemy.pathGoalX===null||Math.hypot(goalX-enemy.pathGoalX,goalY-enemy.pathGoalY)>42;
+    if(enemy.pathTimer===0||goalChanged){
+      enemy.path=findPath(enemy.x,enemy.y,goalX,goalY,12)||[];
+      enemy.pathIndex=0;enemy.pathTimer=.55;enemy.pathGoalX=goalX;enemy.pathGoalY=goalY;
+    }
+    while(enemy.pathIndex<enemy.path.length&&Math.hypot(enemy.path[enemy.pathIndex].x-enemy.x,enemy.path[enemy.pathIndex].y-enemy.y)<9)enemy.pathIndex++;
+    const waypoint=enemy.path[enemy.pathIndex];
+    if(!waypoint)return false;
+    const dx=waypoint.x-enemy.x,dy=waypoint.y-enemy.y,distance=Math.hypot(dx,dy);
+    if(distance<.01)return false;
+    const travel=Math.min(distance,speed*dt),nx=enemy.x+dx/distance*travel,ny=enemy.y+dy/distance*travel;
+    if(!isBlockedByTree(nx,ny,12)){enemy.x=nx;enemy.y=ny;return true}
+    enemy.pathTimer=0;return false;
+  }
   update(dt,input){
     this.clock+=dt;this.autosaveTimer+=dt;if(this.autosaveTimer>=8){this.autosaveTimer=0;writeSave(this)}this.player.attackTimer=Math.max(0,this.player.attackTimer-dt);this.player.skillTimer=Math.max(0,this.player.skillTimer-dt);this.player.flash=Math.max(0,this.player.flash-dt);
     const d=input.getDirection();if(Math.hypot(d.x,d.y)>.08){this.movePlayer(d.x*220*dt,d.y*220*dt);this.target=null}
