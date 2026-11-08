@@ -46,7 +46,7 @@ export function findPath(startX,startY,goalX,goalY,entityRadius=12){
   while(open.length&&visited++<1800){
     let best=0;for(let i=1;i<open.length;i++)if(open[i].f<open[best].f)best=i;
     const current=open.splice(best,1)[0],currentKey=key(current.c,current.r);
-    if(closed.has(currentKey))continue;
+    if(closed.has(currentKey)||current.g!==cost.get(currentKey))continue;
     if(currentKey===goalKey){found=true;break}
     closed.add(currentKey);
     for(const [dc,dr,weight] of dirs){
@@ -66,6 +66,5 @@ export function findPath(startX,startY,goalX,goalY,entityRadius=12){
     cursor=cameFrom.get(cursor);if(cursor===undefined)return null;
   }
   path.reverse();
-  path.push({x:goalX,y:goalY});
   return path;
 }
