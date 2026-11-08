@@ -12,7 +12,11 @@ $("bag-button").addEventListener("click",()=>openPanel("inventory"));$("close-mo
 function closePanel(){$("modal").classList.add("hidden")}
 function openPanel(type){const title={character:"角色信息",inventory:"背包与装备",skills:"职业技能",quest:"主线任务",map:"探索地图",shop:"老铁匠铺"}[type]||"冒险";$("modal-title").textContent=title;const s=game.snapshot();let html="";
 if(type==="character"){html='<div class="panel-grid">'+card("职业",s.klass.name)+card("等级","Lv."+s.level)+card("战斗力",s.power)+card("攻击力",s.attack)+card("生命值",s.hp+"/"+s.maxHp)+card("金币",s.gold)+'</div><div class="panel-actions class-choice">'+Object.entries(CLASSES).map(([id,c])=>'<button data-class="'+id+'">'+c.name+'</button>').join("")+"</div>";}
-if(type==="inventory"){html='<div class="panel-grid">'+Object.entries(SLOT_NAMES).map(([id,name])=>card(name,game.equipment[id]?.name||"未装备")).join("")+'</div><h3>背包物品</h3><div class="item-list">'+(game.inventory.length?game.inventory.map((item,i)=>'<div class="item-card"><div><b>'+item.name+'</b><small>'+item.quality+' · '+item.slot+'</small></div><button data-equip="'+i+'">装备</button></div>').join(""):'<div class="empty-note">背包暂时空空如也，继续探索并击败怪物。</div>')+'</div>';}
+if(type==="inventory"){
+  const slots=Object.entries(SLOT_NAMES).map(([id,name])=>{const item=game.equipment[id];return '<div class="stat-card"><b>'+name+'</b><span>'+(item?item.name+"（"+item.quality+"）":"未装备")+'</span>'+(item?'<small>攻 +'+(item.attack||0)+' · 血 +'+(item.health||0)+' · 防 +'+(item.defense||0)+'</small><button data-unequip="'+id+'">卸下</button>':"")+'</div>';}).join("");
+  const items=game.inventory.map((item,i)=>{const d=game.compareGear(item);const fmt=n=>(n>0?"+":"")+n;return '<div class="item-card"><div><b>'+item.name+'</b><small>'+item.quality+' · '+(SLOT_NAMES[item.slot]||item.slot)+' · 攻 +'+(item.attack||0)+' · 血 +'+(item.health||0)+' · 防 +'+(item.defense||0)+'</small><small>对比当前：攻 '+fmt(d.attack)+' · 血 '+fmt(d.health)+' · 防 '+fmt(d.defense)+'</small></div><button data-equip="'+i+'">穿戴</button></div>';}).join("");
+  html='<div class="panel-grid">'+slots+'</div><h3>背包物品</h3><div class="item-list">'+(items||'<div class="empty-note">背包暂时空空如也，继续探索并击败怪物。</div>')+'</div>';
+}
 if(type==="shop"){
   html='<div class="npc-dialogue"><b>老铁匠</b><p>冒险路上，趁手的武器和结实的护甲能救你的命。带够金币再来。</p></div><div class="item-list">'+SHOP_ITEMS.map(item=>'<div class="item-card"><div><b>'+item.name+'</b><small>'+item.description+' · '+item.price+' 金币</small></div><button data-buy="'+item.id+'" '+(game.gold<item.price?'disabled':'')+'>购买</button></div>').join("")+'</div><p class="empty-note">当前金币：'+game.gold+' · 装备购买后放入背包，药水直接增加库存。</p>';
 }
@@ -29,7 +33,7 @@ if(type==="map"){const regions=[{id:"village",name:"守林新手村",level:1},{i
 $("modal-content").innerHTML=html;$("modal").classList.remove("hidden");
 $("modal-content").querySelectorAll("[data-class]").forEach(b=>b.addEventListener("click",()=>{const id=b.dataset.class;game.switchClass(id);openPanel(type)}));
 $("modal-content").querySelectorAll("[data-buy]").forEach(b=>b.addEventListener("click",()=>{game.buyShopItem(b.dataset.buy);openPanel(type)}));
-$("modal-content").querySelectorAll("[data-equip]").forEach(b=>b.addEventListener("click",()=>{const item=game.inventory.splice(Number(b.dataset.equip),1)[0];if(item){const old=game.equipment[item.slot];if(old)game.inventory.push(old);game.equipment[item.slot]=item;game.toast("已装备："+item.name);openPanel(type)}}));
+$("modal-content").querySelectorAll("[data-equip]").forEach(b=>b.addEventListener("click",()=>{game.equipItem(Number(b.dataset.equip));openPanel(type)}));$("modal-content").querySelectorAll("[data-unequip]").forEach(b=>b.addEventListener("click",()=>{game.unequipItem(b.dataset.unequip);openPanel(type)}));
 $("skill-upgrade")?.addEventListener("click",()=>{if(game.upgradeSkill())openPanel(type);else game.toast("技能点不足或技能已满级")});
 $("quest-talk")?.addEventListener("click",()=>{const npc=game.nearbyNpc;if(npc?.id==="village_elder")game.interactNpc(npc.id);else game.toast("守林村长位于新手村中央，返回村庄靠近他");openPanel(type)});
 $("quest-action")?.addEventListener("click",()=>{if(!game.questAccepted)game.acceptQuest();else game.claimQuest();openPanel(type)});
