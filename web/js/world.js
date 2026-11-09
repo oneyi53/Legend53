@@ -68,3 +68,17 @@ export function findPath(startX,startY,goalX,goalY,entityRadius=12){
   path.reverse();
   return path;
 }
+
+
+// True when a straight attack ray between two points does not cross a tree trunk.
+export function hasLineOfSight(x1,y1,x2,y2){
+  const vx=x2-x1,vy=y2-y1,lengthSq=vx*vx+vy*vy;
+  if(lengthSq===0)return !isBlockedByTree(x1,y1,0);
+  return !TREE_PLACEMENTS.some(tree=>{
+    const cx=tree.x,cy=tree.y+3;
+    const t=Math.max(0,Math.min(1,((cx-x1)*vx+(cy-y1)*vy)/lengthSq));
+    const dx=x1+t*vx-cx,dy=y1+t*vy-cy;
+    const radius=11*tree.scale+2;
+    return dx*dx+dy*dy<radius*radius;
+  });
+}
