@@ -66,7 +66,7 @@ test("equipment defense reduces incoming damage",()=>{
   assert.equal(game.hp,game.maxHp-5);
 });
 
-import {TREE_PLACEMENTS,isBlockedByTree,findPath} from "../web/js/world.js";
+import {TREE_PLACEMENTS,isBlockedByTree,findPath,hasLineOfSight} from "../web/js/world.js";
 
 test("world collision data matches deterministic visible tree placements",()=>{
   assert.equal(TREE_PLACEMENTS.length,38);
@@ -114,4 +114,33 @@ test("enemy pursuit follows a collision-safe route around trees",()=>{
   for(let i=0;i<30;i++)game.moveEnemyToward(enemy,tree.x+90,tree.y+3,100,.1);
   assert.ok(enemy.x>tree.x+20);
   assert.equal(isBlockedByTree(enemy.x,enemy.y,12),false);
+});
+
+
+test("tree trunks block direct attacks but clear paths remain visible",()=>{
+  const tree=TREE_PLACEMENTS[1];
+  assert.equal(hasLineOfSight(tree.x-80,tree.y+3,tree.x+80,tree.y+3),false);
+  assert.equal(hasLineOfSight(450,330,500,330),true);
+});
+
+test("basic attacks cannot hit an enemy through a tree",()=>{
+  const game=freshGame();
+  const tree=TREE_PLACEMENTS[1];
+  game.player.x=tree.x-80;game.player.y=tree.y+3;
+  const enemy=game.makeEnemy({id:"test",name:"测试怪",hp:100,attack:1,defense:0,speed:0,xp:1,gold:[1,1]},tree.x+80,tree.y+3);
+  game.enemies=[enemy];game.target=enemy;game.basicAttack();
+  assert.equal(enemy.hp,100);
+  assert.equal(game.player.attackTimer,0);
+});
+
+test("auto combat navigates toward a target hidden behind a tree",()=>{
+  const game=freshGame();
+  const tree=TREE_PLACEMENTS[1];
+  game.player.x=tree.x-80;game.player.y=tree.y+3;
+  const enemy=game.makeEnemy({id:"test",name:"测试怪",hp:100,attack:1,defense:0,speed:0,xp:1,gold:[1,1]},tree.x+80,tree.y+3);
+  game.enemies=[enemy];game.target=enemy;game.auto=true;
+  const before=game.player.x;
+  game.update(.1,{getDirection:()=>({x:0,y:0})});
+  assert.ok(game.player.x!==before||game.player.y!==tree.y+3);
+  assert.equal(isBlockedByTree(game.player.x,game.player.y,12),false);
 });
