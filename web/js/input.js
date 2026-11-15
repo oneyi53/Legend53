@@ -1,7 +1,7 @@
 export class InputController{
   constructor(canvas,game){this.canvas=canvas;this.game=game;this.pointer=null;this.origin={x:0,y:0};this.vector={x:0,y:0};this.keys=new Set();
     canvas.addEventListener("pointerdown",e=>this.down(e));window.addEventListener("pointermove",e=>this.move(e));window.addEventListener("pointerup",e=>this.up(e));window.addEventListener("pointercancel",e=>this.up(e));
-    window.addEventListener("keydown",e=>{if(["w","a","s","d","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)){this.keys.add(e.key);e.preventDefault()}});
+    window.addEventListener("keydown",e=>{if(e.target&&/INPUT|TEXTAREA/.test(e.target.tagName))return;if(["w","a","s","d","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)){this.keys.add(e.key);e.preventDefault()}});
     window.addEventListener("keyup",e=>this.keys.delete(e.key));window.addEventListener("blur",()=>{this.pointer=null;this.vector={x:0,y:0};this.keys.clear()});
   }
   down(e){if(e.target!==this.canvas||this.pointer!==null)return;this.pointer=e.pointerId;const r=this.canvas.getBoundingClientRect();const scale=Math.min(r.width/720,r.height/1280),ox=(r.width-720*scale)/2,oy=(r.height-1280*scale)/2;this.origin={x:(e.clientX-r.left-ox)/scale,y:(e.clientY-r.top-oy)/scale};this.vector={x:0,y:0};this.canvas.setPointerCapture?.(e.pointerId)}

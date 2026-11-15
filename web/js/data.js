@@ -1,7 +1,7 @@
 export const CLASSES = {
-  warrior:{name:"战士",maxHp:135,attack:18,defense:.72,range:72,skill:"旋风斩",skillPower:2.2,skillCooldown:7,art:"warrior.svg"},
-  mage:{name:"法师",maxHp:88,attack:15,defense:1.12,range:205,skill:"烈焰火球",skillPower:2.8,skillCooldown:8,art:"mage.svg"},
-  taoist:{name:"道士",maxHp:108,attack:16,defense:.9,range:150,skill:"灵符治疗",skillPower:1.8,skillCooldown:9,art:"taoist.svg"}
+  warrior:{name:"战士",maxHp:135,maxMp:60,mpRegen:2,attack:18,defense:.72,range:72,skill:"旋风斩",skillPower:2.2,skillCooldown:7,skillCost:12,art:"warrior.svg"},
+  mage:{name:"法师",maxHp:88,maxMp:150,mpRegen:5,attack:15,defense:1.12,range:205,skill:"烈焰火球",skillPower:2.8,skillCooldown:8,skillCost:16,art:"mage.svg"},
+  taoist:{name:"道士",maxHp:108,maxMp:100,mpRegen:4,attack:16,defense:.9,range:150,skill:"灵符治疗",skillPower:1.8,skillCooldown:9,skillCost:14,art:"taoist.svg"}
 };
 export const REGIONS=[
   {id:"village",name:"守林新手村",level:1,minY:0,maxY:390,tint:"#526b4c"},

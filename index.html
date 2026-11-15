@@ -3,44 +3,184 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-  <meta name="theme-color" content="#101a17">
-  <meta name="description" content="HERO WORLD — 原创离线竖屏动作角色扮演游戏">
-  <title>HERO WORLD · 传奇</title>
+  <meta name="theme-color" content="#1a140d">
+  <meta name="description" content="传奇 · 离线单机版（HTML5）">
+  <title>传奇 · 单机版</title>
   <link rel="stylesheet" href="./web/css/game.css">
 </head>
 <body>
-  <main id="game-shell" aria-label="HERO WORLD 游戏">
+  <!-- ============ 流程屏：登录 ============ -->
+  <section class="flow-screen" id="screen-login" aria-label="登录">
+    <div class="flow-card">
+      <h1 class="flow-title">传 奇</h1>
+      <p class="flow-sub">离线单机版 · 竖屏</p>
+      <label class="flow-label">账号
+        <input id="login-account" type="text" autocomplete="username" placeholder="账号" maxlength="16">
+      </label>
+      <label class="flow-label">密码
+        <input id="login-password" type="password" autocomplete="current-password" placeholder="密码" maxlength="16">
+      </label>
+      <p class="flow-error hidden" id="login-error"></p>
+      <button class="flow-primary" id="login-button">登 录</button>
+      <label class="flow-check"><input type="checkbox" id="login-remember" checked> 记住账号</label>
+      <p class="flow-note">单机本地档案，不联网、不校验密码；密码不保存、不上传。</p>
+      <p class="flow-ver">1.76 经典玩法 · 结构复刻 · 素材原创</p>
+    </div>
+  </section>
+
+  <!-- ============ 流程屏：选服 ============ -->
+  <section class="flow-screen hidden" id="screen-server" aria-label="选择服务器">
+    <div class="flow-card">
+      <h1 class="flow-title small">选择服务器</h1>
+      <div class="server-list" id="server-list">
+        <button class="server-row selected" data-server="local">
+          <span class="server-dot ok"></span>
+          <span class="server-name">本地单机服</span>
+          <span class="server-state">流畅 · 离线</span>
+        </button>
+      </div>
+      <button class="flow-primary" id="server-enter">进入游戏</button>
+      <button class="flow-ghost" id="server-back">返回登录</button>
+    </div>
+  </section>
+
+  <!-- ============ 流程屏：选角 ============ -->
+  <section class="flow-screen hidden" id="screen-select" aria-label="选择角色">
+    <div class="flow-card">
+      <h1 class="flow-title small">选择角色</h1>
+      <div class="char-list" id="char-list"></div>
+      <div class="flow-row">
+        <button class="flow-primary" id="char-enter">进入游戏</button>
+        <button class="flow-ghost" id="char-create">创建角色</button>
+      </div>
+      <div class="flow-row">
+        <button class="flow-ghost danger" id="char-delete">删除角色</button>
+        <button class="flow-ghost" id="select-back">返回</button>
+      </div>
+      <p class="flow-note">单机版为单存档位：创建新角色会覆盖当前存档。</p>
+    </div>
+  </section>
+
+  <!-- ============ 流程屏：建角 ============ -->
+  <section class="flow-screen hidden" id="screen-create" aria-label="创建角色">
+    <div class="flow-card">
+      <h1 class="flow-title small">创建角色</h1>
+      <div class="create-stage">
+        <button class="create-arrow" id="create-prev" aria-label="上一个职业">‹</button>
+        <img id="create-art" src="./assets/characters/warrior.svg" alt="职业立绘">
+        <button class="create-arrow" id="create-next" aria-label="下一个职业">›</button>
+      </div>
+      <p class="create-class"><b id="create-class-name">战士</b><span id="create-class-desc">近战物理 · 高血高防</span></p>
+      <div class="gender-row" role="group" aria-label="性别">
+        <button id="create-gender-m" class="gender-btn selected">男</button>
+        <button id="create-gender-f" class="gender-btn">女</button>
+      </div>
+      <div class="name-row">
+        <input id="create-name" type="text" placeholder="请输入角色名" maxlength="12">
+        <button id="create-dice" title="随机名字" aria-label="随机名字">🎲</button>
+      </div>
+      <p class="flow-error hidden" id="create-error"></p>
+      <button class="flow-primary" id="create-confirm">创建角色</button>
+      <button class="flow-ghost" id="create-back">返回</button>
+    </div>
+  </section>
+
+  <!-- ============ 主界面 ============ -->
+  <main id="game-shell" class="hidden" aria-label="传奇单机版">
     <canvas id="game-canvas" aria-label="游戏场景"></canvas>
-    <header class="hud-top">
-      <section class="player-card">
-        <div class="avatar-frame"><img src="./assets/characters/warrior.svg" alt="战士" id="avatar"></div>
-        <div class="player-info">
+
+    <!-- 顶栏 0–52px：左头像卡 / 中地图名+坐标 / 右小地图+设置 -->
+    <header class="topbar">
+      <section class="avatar-card" id="avatar-card" title="打开角色面板">
+        <div class="avatar-frame"><img src="./assets/characters/warrior.svg" alt="角色" id="avatar"></div>
+        <div class="avatar-info">
           <div class="name-line"><strong id="player-name">无名旅者</strong><span id="level-label">Lv.1</span><span class="class-tag" id="class-label">战士</span></div>
-          <div class="bar-row"><span>HP</span><div class="bar"><i id="hp-fill"></i></div><small id="hp-value">135/135</small></div>
-          <div class="bar-row xp-row"><span>EXP</span><div class="bar"><i id="xp-fill"></i></div><small id="xp-value">0/100</small></div>
+          <div class="mini-bar hp"><i id="hp-fill"></i><small id="hp-value">135/135</small></div>
+          <div class="mini-bar mp"><i id="mp-fill"></i><small id="mp-value">60/60</small></div>
         </div>
       </section>
-      <div class="top-right"><div class="region-pill" id="region-label">守林新手村</div><button class="icon-button" id="save-button" title="保存">存档</button></div>
-    </header>
-    <div class="world-toast" id="toast" role="status"></div>
-    <section class="quest-chip" id="quest-chip"><span class="quest-mark">✦</span><div><b id="quest-title">初入森林</b><small id="quest-progress">与守林村长交谈</small></div></section>
-    <section class="bottom-hud">
-      <div class="resource-line"><span>◈ <b id="gold-value">100</b></span><span>✧ <b id="potion-value">3</b></span><span id="zone-level">推荐 Lv.1</span><button id="npc-button" class="small-button">交谈</button><button id="bag-button" class="small-button">背包</button></div>
-      <div class="combat-controls">
-        <div class="joystick-hint" id="joystick-hint">拖动屏幕空白处移动</div>
-        <div class="action-cluster">
-          <button class="action-button auto-button" id="auto-button"><span>自</span><small>自动</small></button>
-          <button class="action-button potion-button" id="potion-button"><span>药</span><small>药水</small></button>
-          <button class="action-button skill-button" id="skill-button"><span>✦</span><small id="skill-name">旋风斩</small><em id="skill-cooldown"></em></button>
-          <button class="action-button attack-button" id="attack-button"><span>⚔</span><small>攻击</small></button>
-        </div>
+      <div class="map-info"><b id="region-label">守林新手村</b><small id="coords-label">450,330</small></div>
+      <div class="top-right">
+        <canvas id="minimap" width="88" height="88" title="打开大地图"></canvas>
+        <button class="icon-button" id="settings-button" title="设置">⚙</button>
       </div>
-      <nav class="bottom-nav"><button data-panel="character">角色</button><button data-panel="inventory">装备</button><button data-panel="skills">技能</button><button data-panel="quest">任务</button><button data-panel="map">地图</button></nav>
+    </header>
+
+    <!-- 任务条 52–78px，可收起 -->
+    <section class="quest-strip" id="quest-strip">
+      <span class="quest-mark">✦</span>
+      <div class="quest-text"><b id="quest-title">清理林间</b><small id="quest-progress">与守林村长交谈</small></div>
+      <button class="quest-toggle" id="quest-toggle" aria-label="收起任务条">▾</button>
     </section>
+
+    <!-- 目标条：选中怪/NPC 时出现 -->
+    <div class="target-banner hidden" id="target-banner">
+      <span id="target-name">森林劫掠者</span>
+      <div class="target-bar"><i id="target-fill"></i></div>
+      <small id="target-health"></small>
+    </div>
+
+    <div class="world-toast" id="toast" role="status"></div>
+
+    <!-- 靠近 NPC 时出现 -->
+    <button class="npc-button hidden" id="npc-button">交谈</button>
+
+    <!-- 右侧竖排功能列 -->
+    <nav class="side-actions" aria-label="功能">
+      <button id="side-bag" title="背包 F9">包</button>
+      <button id="side-char" title="角色 F10">人</button>
+      <button id="side-skills" title="技能 F11">技</button>
+      <button id="side-guild" title="行会">会</button>
+    </nav>
+
+    <!-- 聊天框：左 52%，3 行可展开到 6 行 -->
+    <section class="chat-box" id="chat-box" aria-label="聊天">
+      <div class="chat-tabs" id="chat-tabs"></div>
+      <div class="chat-log" id="chat-log"></div>
+      <div class="chat-input-row">
+        <input id="chat-input" type="text" placeholder="输入聊天内容…（! 世界 · !! 组队 · !~ 行会 · /名 私聊）" maxlength="60">
+        <button id="chat-send">发送</button>
+        <button id="chat-expand" title="展开/收起聊天" aria-label="展开聊天">▲</button>
+      </div>
+    </section>
+
+    <!-- 右下攻击区：主攻击 + 弧形技能钮 -->
+    <div class="attack-cluster">
+      <button class="cluster-btn auto-btn" id="auto-button" title="自动战斗"><span>自</span><small>自动</small></button>
+      <button class="cluster-btn skill-btn" id="skill-button" title="技能 F1"><span>✦</span><small id="skill-name">旋风斩</small><em id="skill-cooldown"></em></button>
+      <button class="cluster-btn attack-btn" id="attack-button" title="攻击"><span>⚔</span><small>攻击</small></button>
+    </div>
+
+    <!-- 底栏：红球 / 药水 / F1–F8 / 回城卷 / 蓝球 + 经验条 + 模式行 -->
+    <footer class="bottombar">
+      <div class="orb-row">
+        <button class="orb hp-orb" id="hp-orb" title="点击喝最强红药"><span class="orb-num" id="hp-orb-value">135</span><small>HP</small></button>
+        <button class="potion-cell" id="potion-cell" title="金创药"><span>🧪</span><small id="potion-count">3</small></button>
+        <div class="skill-slots" id="skill-slots" aria-label="技能快捷栏 F1–F8"></div>
+        <button class="potion-cell" id="recall-cell" title="回城卷：返回新手村"><span>📜</span><small>回城</small></button>
+        <button class="orb mp-orb" id="mp-orb" title="魔法值"><span class="orb-num" id="mp-orb-value">60</span><small>MP</small></button>
+      </div>
+      <div class="exp-row"><div class="exp-bar"><i id="exp-fill"></i></div><small id="exp-value">0/100</small></div>
+      <div class="mode-row"><span id="mode-label">模式：和平</span><span id="zone-level">推荐 Lv.1</span></div>
+    </footer>
+
+    <!-- 通用面板 -->
     <section class="modal hidden" id="modal" aria-modal="true" role="dialog">
-      <div class="modal-card"><header><h2 id="modal-title">角色</h2><button id="close-modal" aria-label="关闭">×</button></header><div id="modal-content"></div></div>
+      <div class="modal-card">
+        <header><h2 id="modal-title">角色</h2><button id="close-modal" aria-label="关闭">×</button></header>
+        <div id="modal-content"></div>
+      </div>
     </section>
-    <div class="target-banner hidden" id="target-banner"><span id="target-name">森林劫掠者</span><div class="target-bar"><i id="target-fill"></i></div><small id="target-health"></small></div>
+
+    <!-- 死亡遮罩 -->
+    <section class="death-overlay hidden" id="death-overlay" aria-label="死亡">
+      <div class="death-card">
+        <h2>你已经死亡</h2>
+        <p>画面已灰化。复活规则与按钮文案待原版截图核对，当前为占位方案。</p>
+        <button class="flow-primary" id="death-revive">回城复活</button>
+        <button class="flow-ghost" id="death-stay" disabled>原地复活（需还魂丹）</button>
+      </div>
+    </section>
   </main>
   <script type="module" src="./web/js/main.js"></script>
 </body>
